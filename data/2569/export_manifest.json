@@ -1,0 +1,17 @@
+{
+  "exportedAt": "2026-11-03T18:08:38.193749+00:00",
+  "from": [
+    "dist/data.js",
+    "dist/portraits.js",
+    "dist/reference-data.js"
+  ],
+  "files": {
+    "election.csv": "ebb33df6287a49b71261b78361e58c78334acdfd3aa919044d569d9d81af66c6",
+    "parties.csv": "a7a6a1dcba09d6b6f9c73b8a6979847211e065f65591e3e06c2403e403494b8a",
+    "provinces.csv": "e2326c7fa253241fa879ff530d5df587153010dda86be505819b5e416baa9b58",
+    "constituencies.csv": "d5a237812d097e1f7166cbe82dc5816cd0b4aa4d6110acbdd8d7dd99cb84a653",
+    "candidates.csv": "1eb4c3c5c80e468e982c1689bb0b8fe8cdd13a9f8bfae798b2cca48812f82036",
+    "party_list_votes.csv": "ed7e8fc9ba66fa1f9ff609521364dd3d4e9b20d8aec61fb9fa29110677f17e36",
+    "sources.csv": "29f8bf898b674926764454777cd08d918362b27ad23a6e12d56cf4f222268630"
+  }
+}
