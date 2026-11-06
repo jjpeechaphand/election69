@@ -1,0 +1,47 @@
+# Election 69 — ระบบวิเคราะห์ผลเลือกตั้ง สส. 2569 ด้วยภาพ
+**ลิงก์ระบบ:** ยังไม่ได้เผยแพร่ออนไลน์ — เปิด `dist/index.html` หรือแตก `release/election69-two-page-offline.zip` แล้วเปิด `index.html` (ทำงานออฟไลน์ได้) *เมื่อเผยแพร่แล้วให้ใส่ URL ที่นี่*
+
+## ภาษาไทย
+### 1. ภาพรวมระบบ
+ระบบสองหน้าในแถบด้านข้าง: **ภาพรวม** สำหรับเข้าใจผลอย่างรวดเร็ว และ **วิเคราะห์ข้อมูล** สำหรับสำรวจเชิงลึกด้วยกราฟ ข้อมูลทั้งหมดมาจากสำเนาผลของ กกต. (อัปเดต 15 พ.ค. 2569) 400 เขต 77 จังหวัด 60 พรรค 500 ที่นั่ง แถบด้านข้างมีการค้นหา (จังหวัด เลขเขต ชื่อพื้นที่ในเขต เช่น "บางรัก" หรือ "อำเภอโนนไทย" ชื่อผู้สมัคร พรรค หรือ "เชียงใหม่ 3") ตัวกรองภูมิภาค/จังหวัด/พรรค และปุ่ม Clear All ส่วนปุ่มเลือกภาษาเป็นธงไทย–อังกฤษที่มุมขวาบน
+
+### 2. หน้าภาพรวม
+KPI การใช้สิทธิและบัตรเสีย, การ์ดพรรค 10 พรรคพร้อมภาพแคนดิเดตนายกฯ จาก กกต. (ที่นั่งรวม เขต + บัญชีรายชื่อ), แผนที่หกเหลี่ยม 77 จังหวัด, องค์ประกอบสภา 500 ที่นั่ง, เขตสูสีที่สุด และรายชื่อจังหวัดเต็มทั้งหมด คลิกจังหวัดแล้วแผนที่จะซูมเข้าไปเป็นแผนที่รายเขตของจังหวัดนั้น (สีตามพรรคผู้ชนะ มีเลขเขต ชี้เพื่อดูชื่ออำเภอ/เขตในเขตนั้น) พร้อมผลทุกเขตในแผงขวา คลิกเขตเพื่อดูผู้สมัครทุกคนกับการเปรียบเทียบคะแนนสองใบ ปุ่มรีเซ็ตซูมกลับสู่แผนที่ประเทศไทย ทั้งหน้าพอดีจอโดยไม่ต้องเลื่อน (จอ ≥ 900px)
+
+### 3. การออกแบบแผนที่
+ใช้ผังหกเหลี่ยมของ Thailand Hex Map (puripant / Boonmee Lab) 1 ช่องต่อ 1 จังหวัด ขนาดเท่ากัน เพื่อไม่ให้จังหวัดพื้นที่ใหญ่ครอบงำการรับรู้ (tile grid map) แผนที่ไม่ใช่ขอบเขตจริงและไม่ได้แทนเขตเลือกตั้ง ป้ายในช่องเป็นชื่อจังหวัดเต็มครบ 77 จังหวัดตลอดเวลาโดยไม่ต้องซูม ตัดบรรทัดตามขอบคำ ไม่ใช้อักษรย่อ สีเปลี่ยนได้ 4 แบบ: พรรคที่ชนะเขตมากที่สุด (ลายแถบเมื่อเสมอ), อัตราใช้สิทธิ, บัตรเสีย, สัดส่วนคะแนนของพรรคที่เลือก
+
+### 4. Tooltip จังหวัด
+ชี้เมาส์ที่จังหวัดเพื่อดู: ชื่อจังหวัดเต็ม, จำนวนเขต, ผู้มาใช้สิทธิ/ผู้มีสิทธิ, อัตราการใช้สิทธิ (Σผู้มาใช้สิทธิ ÷ Σผู้มีสิทธิ), บัตรเสียแยกแบบแบ่งเขตและบัญชีรายชื่อ, จำนวนเขตที่แต่ละพรรคชนะ และผู้ชนะทุกเขตพร้อมพรรค คะแนน และส่วนต่าง (เลื่อนดูในกรอบได้ เช่น กรุงเทพฯ 33 เขต) tooltip เปิดที่ตำแหน่งเมาส์และเลื่อนตามเมาส์ เมื่อหยุดเมาส์แล้วเลื่อนเข้าไปอ่านต่อได้โดยไม่ปิด คลิกเพื่อซูมเข้าไปดูรายเขต ใช้ลูกศร/Enter/Escape กับคีย์บอร์ดได้ บนมือถือแตะจังหวัดเพื่อเปิด bottom sheet ที่มีข้อมูลครบเท่ากัน tooltip แสดงผลทางการทั้งจังหวัดเสมอแม้เลือกพรรคไว้
+
+### 5. หน้าวิเคราะห์ข้อมูล
+แท็บ "ภาพรวม 4 กราฟ": (A) ที่นั่งของแต่ละพรรค — แท่งซ้อน สส.เขต + บัญชีรายชื่อ ระดับประเทศ (B) ชนะกันห่างแค่ไหน — ฮิสโทแกรมส่วนต่างชนะ ลากเลือกช่วงได้ (C) คนมาใช้สิทธิกับความสูสี — กราฟกระจายพร้อมค่า r (D) คะแนนคนกับคะแนนพรรค — ดัมเบลเปรียบเทียบคะแนนผู้สมัครกับบัญชีรายชื่อของพรรคเดียวกัน รายพรรคและรายเขต; แท็บอื่น: คะแนนแต่ละภาค (ฮีตแมปภูมิภาค×พรรค), ประชากรหนาแน่นกับคะแนนพรรค (ระดับจังหวัด), เปรียบเทียบเขตที่สนใจ (สูงสุด 4 เขต) ทุกกราฟมีมุมมองตาราง
+
+### 6. เทคนิคการโต้ตอบ (ประเภทตามสไลด์ vis-10 p.5 ซึ่งมาจาก Yi et al., 2007)
+Select (การ์ด/แท่ง/จังหวัด/จุด), Explore (แพน ซูม เลื่อน), Reconfigure (เรียงลำดับ จำนวนที่แสดง), Encode (เปลี่ยนสีแผนที่ หน่วย สเกล กราฟ↔ตาราง), Abstract/Elaborate (tooltip → แผงจังหวัด → เขต → ผู้สมัคร; รายพรรค → รายเขต), Filter (ภูมิภาค ช่วงที่ลาก), Connect (ช่วงที่ลากและพรรคที่เลือกเชื่อมทุกกราฟ) รายละเอียดใน `INTERACTION_TASK_MATRIX.md`
+
+### 7. แหล่งข้อมูล
+กกต. (ectreport69.ect.go.th) ผลแบ่งเขต บัญชีรายชื่อ ทะเบียน และภาพแคนดิเดต; แผนที่ประเทศไทยแบบหกเหลี่ยมอ้างอิงรูปแบบจาก Hex Map of Thailand ผลงานของ ผศ. ดร. ภูริพันธุ์ รุจิขจร อาจารย์ประจำภาควิชาสถิติ จุฬาลงกรณ์มหาวิทยาลัย และผู้ร่วมก่อตั้ง Boonmee Lab (ไม่พบไฟล์สัญญาอนุญาตใน archive); ขอบเขตเขตเลือกตั้ง Thai-ECT-election-map โดย Kittapat Ratanaphupha (MIT); เครดิตแสดงใต้แผนที่; ความหนาแน่นประชากร สสช. ปี 2567; D3.js (ISC) ดู `DATA_PROVENANCE.md`
+
+### 7.1 การแก้ไขและอัปเดตข้อมูล
+ข้อมูลทุกอย่าง (พรรค หัวหน้าพรรค แคนดิเดตนายกฯ ผู้สมัคร คะแนน เขต จังหวัด จำนวนที่นั่ง วันเลือกตั้ง) อยู่ในไฟล์ CSV ที่แก้ด้วย Excel ได้ใน `dist/data/` แยกหนึ่งโฟลเดอร์ต่อการเลือกตั้ง จึงใช้เว็บเดิมกับการเลือกตั้งครั้งต่อไปได้ ปุ่มอัปเดต (ไอคอนลูกศรวนมุมขวาบน) อ่านไฟล์ล่าสุดโดยไม่ต้องโหลดหน้าใหม่และแสดงเวลาอัปเดตล่าสุด คู่มือ `DATA_EDITING_GUIDE.md`
+
+### 8. การตรวจสอบ
+ความถูกต้อง: ตรวจเทียบกับเว็บไซต์ กกต. สด (3 พ.ย. 2569) ทุกเขต ผู้สมัคร 3,491 คน และ 60 พรรค ต่างกัน 0 รายการ; ไม่มีข้อมูลขาด ความไม่ลงตัวเล็กน้อยของบัตรในตัวเลข กกต. เอง (17 และ 12 เขต) แสดงเป็นหมายเหตุโดยไม่แก้ค่า; ทดสอบตัวเลข 72/72 และตรวจภายใน 15/15 (ที่นั่งรวม 500, ยอดประเทศตรง กกต., อัตราใช้สิทธิแบบรวมตัวเศษ/ตัวส่วน) ความใช้งาน: ทดสอบเบราว์เซอร์อัตโนมัติ 18/18 ขั้นตอน 7 ขนาดจอ และออฟไลน์ ไม่มีข้อผิดพลาด ข้อมูลต้นฉบับ 1,600 ไฟล์ไม่ถูกแก้ ยังไม่มีการทดสอบกับผู้ใช้จริง ดู `VALIDATION_REPORT.md`
+
+## English
+**Overview.** A two-page visual analytics system for the 8 February 2026 Thai general election, built only from the Election Commission of Thailand (ECT) snapshot dated 15 May 2026 (400 constituencies, 77 provinces, 60 parties, 500 seats). The sidebar switches between **Overview** and **Data Analysis** without reloading and holds search (province, constituency number, area names in Thai such as บางรัก, candidate, party), shared filters and Clear All; Thai and UK flag buttons at the top right switch the language.
+
+**Overview page.** Turnout and invalid-ballot KPIs, ten rich party cards with the ECT portraits of PM candidates (total = constituency + party-list seats), a 77-province hex tile map, the 500-seat House composition, the closest races and a full-name province list. Clicking a province flies the camera into it and the tile blooms into that province's constituency outlines, coloured by winning party, numbered, with area names on hover; Reset folds them back and zooms out. On screens ≥ 900px the page fits without scrolling.
+
+**Map design.** Equal hexagons adapted from the Hex Map of Thailand, the work of Asst. Prof. Dr. Puripant Ruchikachorn (Department of Statistics, Chulalongkorn University; co-founder of Boonmee Lab), credited under the map (with the constituency outlines credited to Kittapat Ratanaphupha when a province is open), one per province, approximately arranged — not true boundaries and not constituencies. All 77 tiles always show full province names, wrapped at word boundaries, with no abbreviations and no need to zoom.
+
+**Province tooltip.** Full name, number of constituencies, voters and eligible voters, turnout (Σ voters ÷ Σ eligible), invalid ballots per ballot type, constituencies won by each party, and the winner, party, votes and margin in every constituency (internally scrollable). It opens at the pointer and follows it; once the pointer rests, it can be entered and scrolled; click zooms into the province; keyboard and a mobile bottom sheet give the same content. It always shows complete official province results, even when a party is highlighted.
+
+**Analysis page.** Tabs are named by content rather than letters. "Four-chart overview": (A) seats by party as stacked bars, (B) how close races were as a margin histogram with brushing, (C) turnout and closeness as a scatterplot with Pearson r, (D) candidate vs party votes as dumbbells by party and by constituency. Other tabs: votes by region (region × party heatmap), density and votes (province level), and a constituency comparison. Every chart has a table view.
+
+**Editable data.** All election data (parties, leaders, PM candidates, candidates and votes, constituencies, provinces, seat counts, election date) lives in Excel-editable CSV files under `dist/data/`, one folder per election, so the same site can serve future elections. A refresh icon at the top right re-reads the latest files without reloading the page and shows when the data was last updated. See `DATA_EDITING_GUIDE.md`.
+
+**Interaction techniques.** Select, Explore, Reconfigure, Encode, Abstract/Elaborate, Filter and Connect are all implemented (see `INTERACTION_TASK_MATRIX.md`).
+
+**Validation.** A fresh download from the live ECT website (3 Nov 2026) matched every constituency, all 3,491 candidates and all 60 parties with 0 differences. No values are missing. Small ballot-count gaps in ECT's own figures (17 and 12 constituencies) are shown as notes and left unchanged. 72/72 numerical tests, 15/15 integrity checks on load, 18/18 automated browser steps at seven screen sizes and offline, 1,600 source files unchanged. No study with real users has been run yet.

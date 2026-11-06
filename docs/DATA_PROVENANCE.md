@@ -1,0 +1,29 @@
+# แหล่งที่มา วันที่ และสิทธิ์การใช้ (Data Provenance)
+
+ตั้งแต่ 4 พ.ย. 2569 ข้อมูลที่หน้าเว็บแสดงอยู่ในไฟล์ CSV ที่แก้ไขได้ `dist/data/<ปี>/` ข้อมูลปี 2569 ในไฟล์เหล่านั้นส่งออกจากแหล่งในตารางข้างล่าง (ผ่าน data.js, portraits.js, reference-data.js) ด้วย `scripts/export_election_csv.py` โดยไม่แก้ค่าใด และแหล่งข้อมูลแต่ละรายการยังแสดงในหน้าเว็บจาก `sources.csv` ถ้าแก้ข้อมูลภายหลัง ควรบันทึกแหล่งใหม่ใน sources.csv และเวลาใน `source_updated_at`
+
+| ข้อมูล | แหล่ง | วันที่ | สิทธิ์/หมายเหตุ |
+|---|---|---|---|
+| ผลคะแนนแบบแบ่งเขตและสถิติการใช้สิทธิ | [กกต. stats_cons.json](https://ectreport69.ect.go.th/data/stats/stats_cons.json) | ข้อมูลอัปเดต 15 พ.ค. 2569 12:03:09 UTC; ดึงสำเนา 31 ต.ค. 2569 16:48:50 UTC | ข้อมูลเผยแพร่โดย สำนักงาน กกต. การอ้างที่มาไม่ใช่การยืนยันสัญญาอนุญาตแบบเปิด |
+| ผลบัญชีรายชื่อและที่นั่งรายพรรค | [stats_party.json](https://ectreport69.ect.go.th/data/stats/stats_party.json), [info_party_overview.json](https://ectreport69.ect.go.th/data/refs/info_party_overview.json) | เช่นเดียวกัน | |
+| ทะเบียนจังหวัด เขต ผู้สมัคร | [info_province.json](https://ectreport69.ect.go.th/data/refs/info_province.json), [info_constituency.json](https://ectreport69.ect.go.th/data/refs/info_constituency.json), [info_mp_candidate.json](https://ectreport69.ect.go.th/data/refs/info_mp_candidate.json) | เช่นเดียวกัน | ชื่อจังหวัดเต็มภาษาไทยใช้ตามทะเบียนนี้ (ตรึงไว้ใน `model.js` REGISTRY) |
+| ภาพแคนดิเดตนายกรัฐมนตรี 10 ภาพ | [info_party_candidate.json](https://ectreport69.ect.go.th/data/refs/info_party_candidate.json) และไฟล์ภาพในระบบรายงาน กกต. | ดึง 31 ต.ค. 2569 | ไม่พบข้อกำหนดสัญญาอนุญาตใน API; ใช้เพื่อระบุตัวพรรคบนการ์ด ไม่ใช่ภาพผู้ชนะรายเขต รายละเอียดการประมวลผลภาพ: `research/portraits_sources.md` |
+| ผังแผนที่หกเหลี่ยม 77 จังหวัด | Hex Map of Thailand ผลงานของ ผศ. ดร. ภูริพันธุ์ รุจิขจร (Asst. Prof. Dr. Puripant Ruchikachorn) อาจารย์ประจำภาควิชาสถิติ จุฬาลงกรณ์มหาวิทยาลัย และผู้ร่วมก่อตั้ง Boonmee Lab — [puripant/thailand-hex-map](https://github.com/puripant/thailand-hex-map) (ไฟล์ `index.html` ใน archive เขียน "สร้างสรรค์โดย Boonmee Lab" และ meta author = Boonmee Lab; README ระบุว่าจัดวางช่องด้วยมือให้ใกล้รูปร่างประเทศ) ผ่านไฟล์ `thailand-hex-map-master.zip` ที่ผู้ใช้จัดให้ SHA-256 `5f0f460ac4dc5981fc89efc5d0ce07cf549bcc41e5da52cb056fd87fff745fd6` | ไฟล์ลงวันที่ 3 พ.ย. 2569 ในเครื่อง | **ไม่พบไฟล์ LICENSE ใน archive** จึงไม่อ้างสิทธิ์ใดเพิ่ม ใช้เฉพาะตารางตำแหน่ง (`thaiHexMap`) และวาด SVG ใหม่ พร้อมให้เครดิตบนหน้าเว็บและในหน้าต่างที่มา |
+| ชื่อจังหวัดภาษาอังกฤษ | ตาราง `data/provinces-visited.csv` ใน ZIP เดียวกัน | — | สะกดตามชุดชื่อ GADM ที่ต้นทางใช้ (เช่น Buri Ram, Si Sa Ket, Chon Buri) เป็นชื่อเต็ม ไม่ใช่อักษรย่อ แต่ไม่ใช่ชุดชื่อทางการของ กกต. |
+| ความหนาแน่นประชากรรายจังหวัด | [สำนักงานสถิติแห่งชาติ — Statistical Yearbook 2025](https://www.nso.go.th/public/e-book/Statistical-Yearbook/SYB-2025/77/) | ปีข้อมูล 2567 (2024) | ระดับจังหวัด ไม่ใช่ระดับเขต |
+| ขอบเขตเลือกตั้ง 400 เขต (แผนที่รายเขต) | [KittapatR/Thai-ECT-election-map](https://github.com/KittapatR/Thai-ECT-election-map) ผ่าน `dist/geography.json` ที่มีอยู่ → `dist/district-shapes.js` | ใช้สำเนาในเครื่อง | MIT License (`dist/geography-license.txt`); เป็นขอบเขตโดยประมาณจากชุมชน ไม่ใช่แผนที่ทางการของ กกต. หน้าเว็บให้เครดิตในคำอธิบายแผนที่ |
+| สำเนาตรวจซ้ำจากเว็บ กกต. | JSON 6 ไฟล์ข้างบน ดาวน์โหลดใหม่โดย `scripts/recheck_ect.py` ลง `research/ect-recheck/20261103T125406Z/` พร้อม `download_manifest.json` (SHA-256, Last-Modified 20 ก.ค. 2569) | ดึง 3 พ.ย. 2569 12:54 UTC; เวลาอัปเดตข้อมูลของ กกต. ยังเป็น 15 พ.ค. 2569 12:03:09 UTC | ใช้ตรวจความถูกต้องเท่านั้น หน้าเว็บยังใช้สำเนาเดิม (ค่าตรงกันทุกค่า) |
+| D3.js v7 | `dist/vendor/d3.min.js` | — | ISC License (`dist/vendor/D3-LICENSE.txt`) |
+| ฟอนต์ Noto Sans Thai (Google / The Noto Project Authors, v2.002) — ฟอนต์ที่ใช้ทั้งเว็บ | [google/fonts ofl/notosansthai](https://github.com/google/fonts/tree/main/ofl/notosansthai) ไฟล์ `NotoSansThai[wdth,wght].ttf` (218,652 ไบต์, SHA-256 `5a1c559bb539583c8a1fd99d1c5b9491e5e14478c9cd2bd0970d5c3096cc9ef8`, แกนน้ำหนัก 100–900, ครอบคลุมไทย ละติน และตัวเลขครบ) ตรวจและแปลงเป็น WOFF ด้วย `scripts/fetch_noto_sans_thai.py`; สำเนาดาวน์โหลดพร้อม manifest ใน `research/font-download/20261103T142202Z/` | ดาวน์โหลด 3 พ.ย. 2569 ตามที่ผู้ใช้อนุมัติ | SIL Open Font License 1.1 (`dist/fonts/NotoSansThai-OFL.txt`) แจกจ่ายพร้อมเว็บได้ |
+| ฟอนต์ Anuphan (Cadson Demak) — เลิกใช้แล้ว ไฟล์ยังเก็บไว้ | [google/fonts ofl/anuphan](https://github.com/google/fonts/tree/main/ofl/anuphan) ไฟล์ `Anuphan[wght].ttf` (231,712 ไบต์, SHA-256 `7ec47ebcaa9d6459d974691cbb42fae52e1449478a607b071bfaf3ccdb433ce4`) | ดาวน์โหลด 3 พ.ย. 2569 | SIL OFL 1.1 (`dist/fonts/Anuphan-OFL.txt`); ไม่ถูกอ้างถึงใน e69.css และไม่ถูกแพ็กใน ZIP แล้ว |
+| ไอคอนเมนู | ดัดแปลงจาก Lucide (layout-dashboard, chart-no-axes-combined) | — | ISC License |
+
+## สิ่งที่ไม่ได้ใช้ในหน้าเผยแพร่
+- หลักฐาน OCR และเครื่องมือตรวจสอบ (audit) จากรุ่นก่อน ถูกถอดออกจากหน้าใช้งานทั้งหมด ไฟล์เดิมยังเก็บไว้ใน `research/` และ `verification/` ตามข้อกำหนดห้ามลบ
+- ภาพผู้สมัครรายเขต `dist/assets/constituents/` (มีบางส่วน 189 ไฟล์) ไม่ได้ใช้ เพื่อไม่ให้ความครอบคลุมไม่เท่ากันระหว่างเขต
+
+## ความต่างที่พบในต้นทาง (ไม่ได้แก้ข้อมูล)
+- ตารางพรรคของ กกต. ระบุคะแนนแบบแบ่งเขตเป็น 0 สำหรับ รักษ์ธรรม (191 คะแนนในผลรายเขต), รวมพลัง (113), สัมมาธิปไตย (1,504) ระบบรายงานไว้ในการตรวจสอบภายใน และใช้ผลรายเขตในการคำนวณรายเขต/จังหวัด
+- ยอดผู้มาใช้สิทธิของบัตรสองชนิดต่างกันเล็กน้อยใน 104 เขต (ระดับประเทศ 37,807,812 กับ 37,807,816) หน้าเว็บใช้ยอดของบัตรแบบแบ่งเขตสำหรับอัตราการใช้สิทธิ และระบุไว้ในนิยาม
+- บัตรดี + บัตรเสีย + ไม่เลือกใคร ไม่เท่ากับผู้มาใช้สิทธิใน 17 เขตสำหรับบัตรแบ่งเขต (ต่าง −3 ถึง +1 ใบ เช่น 62_1 ต่าง −3, 20_1 และ 67_1 ต่าง −2) และ 12 เขตสำหรับบัญชีรายชื่อ (ต่าง ±1 ใบ) ตัวเลขเหล่านี้ตรงกับเว็บ กกต. ณ 3 พ.ย. 2569 หน้าเว็บแสดงตามที่ประกาศและติดหมายเหตุในแผงเขตนั้น
+- ผู้สมัคร 3 คนได้ 0 คะแนน (เป็นค่าที่ประกาศ ไม่ใช่ข้อมูลขาด)
