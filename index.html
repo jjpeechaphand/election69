@@ -3,7 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f8fafc">
+<meta name="theme-color" content="#effaff">
+<script>
+/* Colour theme before the first paint: the visitor's pick on this browser if there is one, otherwise the device
+   setting. e69-app.js keeps it in step afterwards (menu beside the flags, device changes). */
+(function () {
+  var t; try { t = localStorage.getItem('e69-theme'); } catch (e) { /* storage unavailable */ }
+  if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  if (t === 'dark') document.querySelector('meta[name=theme-color]').setAttribute('content', '#08161e');
+})();
+</script>
 <meta name="description" content="Election 69 — สำรวจและวิเคราะห์ผลเลือกตั้ง สส. 8 กุมภาพันธ์ 2569 จากข้อมูล กกต. ผ่านแผนที่ 77 จังหวัด การ์ดพรรค และกราฟวิเคราะห์เชิงโต้ตอบ">
 <title>Election 69 · ผลเลือกตั้ง 2569</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -14,7 +24,7 @@
 <div class="app" id="app">
   <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
     <div class="side-head">
-      <a class="brand" href="#overview" data-act="page" data-v="overview"><span class="brand-word">ELECTION<b>69</b></span><small id="brandSub">ผลเลือกตั้งไทย 2569</small></a>
+      <a class="brand" href="#overview" data-act="page" data-v="overview"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><clipPath id="brandSlot"><path d="M0 0h40v21H0z"/></clipPath></defs><rect class="bm-box" x="7.5" y="21" width="25" height="11.5" rx="3.2"/><g clip-path="url(#brandSlot)"><g class="bm-card"><rect x="13" y="5.5" width="14" height="19" rx="2.4"/><path d="M16.6 10.6l6.8 6.8M23.4 10.6l-6.8 6.8"/></g></g><rect class="bm-slot" x="9.5" y="19.4" width="21" height="3" rx="1.5"/></svg></span><span class="brand-text"><span class="brand-word" data-text="ELECTION69">ELECTION<b>69</b></span><small id="brandSub">ผลเลือกตั้งไทย 2569</small></span></a>
       <button type="button" class="icon-btn close-nav" id="closeNav"><span class="sr-only" id="closeNavLabel">ปิดเมนู</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
     <nav class="primary-nav" id="primaryNav" aria-label="หน้า"></nav>
@@ -47,9 +57,15 @@
         <span class="updated-at" id="updatedAt"></span>
         <span class="refresh-note" id="refreshNote" role="status" aria-live="polite" hidden></span>
       </div>
+      <div class="prefs">
+      <div class="theme-menu" id="themeMenu">
+        <button type="button" class="icon-btn theme-btn" id="themeBtn" data-act="theme-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="themeList"></button>
+        <div class="theme-list" id="themeList" role="menu" hidden></div>
+      </div>
       <div class="lang-flags" role="group" id="langGroup" aria-label="ภาษา / Language">
         <button type="button" class="flag-btn" data-act="lang" data-v="th" lang="th" aria-label="ภาษาไทย" title="ภาษาไทย"><svg viewBox="0 0 9 6" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="9" height="6" fill="#a51931"/><rect y="1" width="9" height="4" fill="#f4f5f8"/><rect y="2" width="9" height="2" fill="#2d2a4a"/></svg></button>
         <button type="button" class="flag-btn" data-act="lang" data-v="en" lang="en" aria-label="English" title="English"><svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="ukClip"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="ukDiag"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><g clip-path="url(#ukClip)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#ukDiag)" stroke="#c8102e" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6"/></g></svg></button>
+      </div>
       </div>
       </div>
     </header>
