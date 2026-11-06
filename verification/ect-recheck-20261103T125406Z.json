@@ -1,0 +1,217 @@
+{
+  "checkedAt": "2026-11-03T12:54:09.350217+00:00",
+  "liveSource": "https://ectreport69.ect.go.th/general/overview",
+  "liveFolder": "research/ect-recheck/20261103T125406Z",
+  "liveLastUpdate": "2026-05-15T12:03:09.725Z",
+  "dashboardUpdatedAt": "2026-05-15T12:03:09.725Z",
+  "compared": {
+    "constituencies": 400,
+    "candidates": 3491,
+    "parties": 60
+  },
+  "differenceCount": 0,
+  "differences": [],
+  "dataQuality": {
+    "missing": {
+      "eligible": [],
+      "turnout": [],
+      "invalid": [],
+      "noVote": [],
+      "officialValid": [],
+      "partyListTurnout": [],
+      "partyListValidVotes": [],
+      "partyListInvalid": [],
+      "partyListNoVote": [],
+      "zone": []
+    },
+    "negative": {
+      "eligible": [],
+      "turnout": [],
+      "invalid": [],
+      "noVote": [],
+      "officialValid": [],
+      "partyListTurnout": [],
+      "partyListValidVotes": [],
+      "partyListInvalid": [],
+      "partyListNoVote": []
+    },
+    "emptyZone": [],
+    "turnoutAboveEligible": [],
+    "candidateSumNotValid": [],
+    "partyListSumNotValid": [],
+    "constituencyBallotsNotTurnout": [
+      {
+        "id": "10_4",
+        "difference": -1
+      },
+      {
+        "id": "10_21",
+        "difference": -1
+      },
+      {
+        "id": "14_5",
+        "difference": -1
+      },
+      {
+        "id": "20_1",
+        "difference": -2
+      },
+      {
+        "id": "24_4",
+        "difference": -1
+      },
+      {
+        "id": "25_3",
+        "difference": -1
+      },
+      {
+        "id": "33_6",
+        "difference": 1
+      },
+      {
+        "id": "41_3",
+        "difference": -1
+      },
+      {
+        "id": "55_3",
+        "difference": -1
+      },
+      {
+        "id": "62_1",
+        "difference": -3
+      },
+      {
+        "id": "63_1",
+        "difference": -1
+      },
+      {
+        "id": "66_2",
+        "difference": -1
+      },
+      {
+        "id": "66_3",
+        "difference": -1
+      },
+      {
+        "id": "67_1",
+        "difference": -2
+      },
+      {
+        "id": "77_1",
+        "difference": -1
+      },
+      {
+        "id": "80_1",
+        "difference": -1
+      },
+      {
+        "id": "90_3",
+        "difference": -1
+      }
+    ],
+    "partyListBallotsNotTurnout": [
+      {
+        "id": "10_10",
+        "difference": -1
+      },
+      {
+        "id": "10_21",
+        "difference": -1
+      },
+      {
+        "id": "19_1",
+        "difference": -1
+      },
+      {
+        "id": "24_2",
+        "difference": -1
+      },
+      {
+        "id": "38_2",
+        "difference": -1
+      },
+      {
+        "id": "39_2",
+        "difference": -1
+      },
+      {
+        "id": "41_3",
+        "difference": -1
+      },
+      {
+        "id": "41_5",
+        "difference": -1
+      },
+      {
+        "id": "42_1",
+        "difference": 1
+      },
+      {
+        "id": "80_1",
+        "difference": -1
+      },
+      {
+        "id": "80_7",
+        "difference": -1
+      },
+      {
+        "id": "86_2",
+        "difference": 1
+      }
+    ],
+    "turnoutDiffersBetweenBallots": 104,
+    "duplicateCandidateNumbers": [],
+    "duplicateCandidateIds": [],
+    "unknownCandidateParty": [],
+    "unknownListParty": [],
+    "namesWithInvisibleOrDoubleSpace": [],
+    "namesNotNFC": [],
+    "tiedFirstPlace": [],
+    "zeroVoteCandidates": 3,
+    "constituenciesPerProvince": 77
+  },
+  "files": [
+    {
+      "key": "province",
+      "url": "https://ectreport69.ect.go.th/data/refs/info_province.json",
+      "bytes": 12826,
+      "sha256": "e393830873f13d6fff212f2959f66ca0ba785c2d85aded68d245a0dddc1c6284",
+      "lastModified": "Mon, 20 Jul 2026 11:56:33 GMT"
+    },
+    {
+      "key": "constituency",
+      "url": "https://ectreport69.ect.go.th/data/refs/info_constituency.json",
+      "bytes": 127920,
+      "sha256": "4df0f0e33ed3beaf847d548c1e01a43b38f88fa4962848df8b88a92970565a3f",
+      "lastModified": "Mon, 20 Jul 2026 11:56:33 GMT"
+    },
+    {
+      "key": "candidates",
+      "url": "https://ectreport69.ect.go.th/data/refs/info_mp_candidate.json",
+      "bytes": 982704,
+      "sha256": "ddf5a6d496660da55679585686d2e28bcdbc538c87bbcc2486c3e8efb97c9f5a",
+      "lastModified": "Mon, 20 Jul 2026 11:56:33 GMT"
+    },
+    {
+      "key": "parties",
+      "url": "https://ectreport69.ect.go.th/data/refs/info_party_overview.json",
+      "bytes": 14894,
+      "sha256": "ffc51c28333214936d3b2cf73f4777fb10b9df417ac3232990e21f6da9aed801",
+      "lastModified": "Mon, 20 Jul 2026 11:56:33 GMT"
+    },
+    {
+      "key": "statsCons",
+      "url": "https://ectreport69.ect.go.th/data/stats/stats_cons.json",
+      "bytes": 8195829,
+      "sha256": "67c6fd94e75835a0a98ee67462489318354d2f846f83b50d39da81efb7a662e3",
+      "lastModified": "Mon, 20 Jul 2026 11:56:33 GMT"
+    },
+    {
+      "key": "statsParty",
+      "url": "https://ectreport69.ect.go.th/data/stats/stats_party.json",
+      "bytes": 884808,
+      "sha256": "f2338c2e06965193c569d6290d9191ab52594fbbf9f98416c159c423b9388d92",
+      "lastModified": "Mon, 20 Jul 2026 11:56:34 GMT"
+    }
+  ]
+}

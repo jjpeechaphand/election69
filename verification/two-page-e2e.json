@@ -1,0 +1,111 @@
+{
+  "started": "2026-11-04T06:55:46.403Z",
+  "steps": [
+    {
+      "name": "Overview: Thai default, KPIs, 10 rich party cards with loaded photos, no audit/OCR UI",
+      "ms": 238
+    },
+    {
+      "name": "Hex map: 77 unique equal tiles mapped to ECT codes; labels are full names only",
+      "ms": 13
+    },
+    {
+      "name": "Bangkok tooltip: full name, 33 constituencies, all 33 winners, weighted turnout, invalid ballots, inside viewport, scrolls",
+      "ms": 858
+    },
+    {
+      "name": "Tooltip opens at the pointer, follows it, and can be entered after resting",
+      "ms": 2975
+    },
+    {
+      "name": "Single-constituency and multi-party provinces",
+      "ms": 1556
+    },
+    {
+      "name": "Party highlight keeps complete province results and shows explicit zero",
+      "ms": 2090
+    },
+    {
+      "name": "Click pins province detail; constituency drill-down; keyboard navigation",
+      "ms": 5598
+    },
+    {
+      "name": "Search by combined province + number and by candidate name",
+      "ms": 2451
+    },
+    {
+      "name": "English mode translates UI and uses full English province names; Clear All keeps language",
+      "ms": 1275
+    },
+    {
+      "name": "Analysis page: four primary charts, linked brushing, details on demand",
+      "ms": 6727
+    },
+    {
+      "name": "Data refresh: icon in the top bar, last-updated time, a saved CSV edit appears in place, a broken edit keeps the old data",
+      "ms": 2282
+    },
+    {
+      "name": "Viewport 360x800: no horizontal overflow; province details reachable",
+      "ms": 3083
+    },
+    {
+      "name": "Viewport 390x844: no horizontal overflow; province details reachable",
+      "ms": 2985
+    },
+    {
+      "name": "Viewport 430x932: no horizontal overflow; province details reachable",
+      "ms": 2982
+    },
+    {
+      "name": "Viewport 768x1024: no horizontal overflow; province details reachable",
+      "ms": 3034
+    },
+    {
+      "name": "Viewport 1366x768: no horizontal overflow; province details reachable",
+      "ms": 2364
+    },
+    {
+      "name": "Viewport 1440x900: no horizontal overflow; province details reachable",
+      "ms": 2396
+    },
+    {
+      "name": "Viewport 1920x1080: no horizontal overflow; province details reachable",
+      "ms": 2451
+    },
+    {
+      "name": "Offline file:// entry with networking disabled",
+      "ms": 580
+    }
+  ],
+  "errors": [],
+  "screenshots": "tests\\screenshots\\two-page-2026-11-04T06-55-46-402Z",
+  "labelledTilesAt1440": 77,
+  "labelPxAt1440": [
+    8.5,
+    10.5
+  ],
+  "sha256": {
+    "index.html": "f97a1fc7f840f62a2582c4cf22f0c650a9df8450828c5b8f6eb4c3c4292a9242",
+    "e69.css": "a417a7ba0f7d4e2d9bfe43646d44bf4c004ecbfd59e72c56ee2d4d91607c5b77",
+    "js/e69-app.js": "f64570dd70923d0dfb20a1919fd8fb27879ac7e2044d49e0e082f120dd7db1e6",
+    "js/e69-analysis.js": "a98d40a328ac70826467ffdb80b2cbcb5480d53bc3da19d7c44a6eee43d047d8",
+    "js/e69-data.js": "1ce736bfce4ddec56e7b3b07df0fc717193ffcebc4525771bb81fbddbd0cc1b4",
+    "js/e69-source.js": "228af005d972e66eda5ee049be58bea175a8db85fde926120e061728eda4cdce",
+    "js/model.js": "cbb51070d22fdbc2d8358657e51242dec9f9208f80923b2082dfa498454a1ff5",
+    "reference-data.js": "8226374f52ab9f6193c7b740077b01ff4f16ae627a514fee8a5a3fe01146965e",
+    "data/bundle.js": "126187175a6f4888071ba4bfe860f0a3b647894b31fa549682d02c561f0206e1",
+    "data/2569/candidates.csv": "1eb4c3c5c80e468e982c1689bb0b8fe8cdd13a9f8bfae798b2cca48812f82036",
+    "data/2569/constituencies.csv": "d5a237812d097e1f7166cbe82dc5816cd0b4aa4d6110acbdd8d7dd99cb84a653",
+    "data/2569/election.csv": "ebb33df6287a49b71261b78361e58c78334acdfd3aa919044d569d9d81af66c6",
+    "data/2569/parties.csv": "a7a6a1dcba09d6b6f9c73b8a6979847211e065f65591e3e06c2403e403494b8a",
+    "data/2569/party_list_votes.csv": "ed7e8fc9ba66fa1f9ff609521364dd3d4e9b20d8aec61fb9fa29110677f17e36",
+    "data/2569/provinces.csv": "e2326c7fa253241fa879ff530d5df587153010dda86be505819b5e416baa9b58",
+    "data/2569/sources.csv": "29f8bf898b674926764454777cd08d918362b27ad23a6e12d56cf4f222268630",
+    "data/elections.csv": "2af33551d5cec3c7e245331ffc340f341dfab688191d88fc430ba030f23337ba",
+    "vendor/d3.min.js": "f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539"
+  },
+  "browser": "156.0.8078.80",
+  "passed": true,
+  "finished": "2026-11-04T06:56:32.964Z"
+}
