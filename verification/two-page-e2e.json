@@ -1,95 +1,99 @@
 {
-  "started": "2026-11-04T06:55:46.403Z",
+  "started": "2026-11-06T15:25:39.920Z",
   "steps": [
     {
       "name": "Overview: Thai default, KPIs, 10 rich party cards with loaded photos, no audit/OCR UI",
-      "ms": 238
+      "ms": 365
     },
     {
       "name": "Hex map: 77 unique equal tiles mapped to ECT codes; labels are full names only",
       "ms": 13
     },
     {
-      "name": "Bangkok tooltip: full name, 33 constituencies, all 33 winners, weighted turnout, invalid ballots, inside viewport, scrolls",
-      "ms": 858
+      "name": "Bangkok tooltip: full name, 33 constituencies, weighted turnout, invalid ballots, seats; a short summary that points to the full list",
+      "ms": 894
     },
     {
       "name": "Tooltip opens at the pointer, follows it, and can be entered after resting",
-      "ms": 2975
+      "ms": 3070
     },
     {
       "name": "Single-constituency and multi-party provinces",
-      "ms": 1556
+      "ms": 1677
     },
     {
       "name": "Party highlight keeps complete province results and shows explicit zero",
-      "ms": 2090
+      "ms": 2122
     },
     {
       "name": "Click pins province detail; constituency drill-down; keyboard navigation",
-      "ms": 5598
+      "ms": 5818
     },
     {
       "name": "Search by combined province + number and by candidate name",
-      "ms": 2451
+      "ms": 2550
     },
     {
       "name": "English mode translates UI and uses full English province names; Clear All keeps language",
-      "ms": 1275
+      "ms": 1360
     },
     {
-      "name": "Analysis page: four primary charts, linked brushing, details on demand",
-      "ms": 6727
+      "name": "Analysis page: four primary charts with their findings, linked brushing, details on demand",
+      "ms": 10592
     },
     {
       "name": "Data refresh: icon in the top bar, last-updated time, a saved CSV edit appears in place, a broken edit keeps the old data",
-      "ms": 2282
+      "ms": 2593
+    },
+    {
+      "name": "Colour theme: follows the device by default, menu beside the flags, a pick outlasts a reload, back to the device setting",
+      "ms": 5391
     },
     {
       "name": "Viewport 360x800: no horizontal overflow; province details reachable",
-      "ms": 3083
+      "ms": 3391
     },
     {
       "name": "Viewport 390x844: no horizontal overflow; province details reachable",
-      "ms": 2985
+      "ms": 3201
     },
     {
       "name": "Viewport 430x932: no horizontal overflow; province details reachable",
-      "ms": 2982
+      "ms": 3209
     },
     {
       "name": "Viewport 768x1024: no horizontal overflow; province details reachable",
-      "ms": 3034
+      "ms": 3290
     },
     {
       "name": "Viewport 1366x768: no horizontal overflow; province details reachable",
-      "ms": 2364
+      "ms": 2620
     },
     {
       "name": "Viewport 1440x900: no horizontal overflow; province details reachable",
-      "ms": 2396
+      "ms": 2666
     },
     {
       "name": "Viewport 1920x1080: no horizontal overflow; province details reachable",
-      "ms": 2451
+      "ms": 2823
     },
     {
       "name": "Offline file:// entry with networking disabled",
-      "ms": 580
+      "ms": 742
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\two-page-2026-11-04T06-55-46-402Z",
+  "screenshots": "tests\\screenshots\\two-page-2026-11-06T15-25-39-919Z",
   "labelledTilesAt1440": 77,
   "labelPxAt1440": [
     8.5,
     10.5
   ],
   "sha256": {
-    "index.html": "f97a1fc7f840f62a2582c4cf22f0c650a9df8450828c5b8f6eb4c3c4292a9242",
-    "e69.css": "a417a7ba0f7d4e2d9bfe43646d44bf4c004ecbfd59e72c56ee2d4d91607c5b77",
-    "js/e69-app.js": "f64570dd70923d0dfb20a1919fd8fb27879ac7e2044d49e0e082f120dd7db1e6",
-    "js/e69-analysis.js": "a98d40a328ac70826467ffdb80b2cbcb5480d53bc3da19d7c44a6eee43d047d8",
+    "index.html": "d20a09c3861243839c131ec797690af1acf1f6313a5d5ba86a304a1bc7134065",
+    "e69.css": "f7e679daaad049fed4d6e9908baab765fea415ccade955e8bc3718ad695cf080",
+    "js/e69-app.js": "5bcfebd9cee8b5fa7d4ef6a446c5ac978d7ecf33dc1d59602221ba047fa80c70",
+    "js/e69-analysis.js": "b5c685b673559a91220906b569ba298715666bef20b97e11b7bc7a67a28c47ca",
     "js/e69-data.js": "1ce736bfce4ddec56e7b3b07df0fc717193ffcebc4525771bb81fbddbd0cc1b4",
     "js/e69-source.js": "228af005d972e66eda5ee049be58bea175a8db85fde926120e061728eda4cdce",
     "js/model.js": "cbb51070d22fdbc2d8358657e51242dec9f9208f80923b2082dfa498454a1ff5",
@@ -107,5 +111,5 @@
   },
   "browser": "156.0.8078.80",
   "passed": true,
-  "finished": "2026-11-04T06:56:32.964Z"
+  "finished": "2026-11-06T15:26:38.901Z"
 }
