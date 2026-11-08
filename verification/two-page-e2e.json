@@ -1,89 +1,93 @@
 {
-  "started": "2026-11-06T15:25:39.920Z",
+  "started": "2026-11-07T11:02:56.437Z",
   "steps": [
     {
       "name": "Overview: Thai default, KPIs, 10 rich party cards with loaded photos, no audit/OCR UI",
-      "ms": 365
+      "ms": 485
     },
     {
       "name": "Hex map: 77 unique equal tiles mapped to ECT codes; labels are full names only",
-      "ms": 13
+      "ms": 2787
     },
     {
       "name": "Bangkok tooltip: full name, 33 constituencies, weighted turnout, invalid ballots, seats; a short summary that points to the full list",
-      "ms": 894
+      "ms": 951
     },
     {
       "name": "Tooltip opens at the pointer, follows it, and can be entered after resting",
-      "ms": 3070
+      "ms": 3011
     },
     {
       "name": "Single-constituency and multi-party provinces",
-      "ms": 1677
+      "ms": 1658
     },
     {
       "name": "Party highlight keeps complete province results and shows explicit zero",
-      "ms": 2122
+      "ms": 2176
+    },
+    {
+      "name": "Map colourings: the two ballots are choices of their own; the province list under the House is gone",
+      "ms": 3783
     },
     {
       "name": "Click pins province detail; constituency drill-down; keyboard navigation",
-      "ms": 5818
+      "ms": 5755
     },
     {
       "name": "Search by combined province + number and by candidate name",
-      "ms": 2550
+      "ms": 2650
     },
     {
       "name": "English mode translates UI and uses full English province names; Clear All keeps language",
-      "ms": 1360
+      "ms": 1330
     },
     {
       "name": "Analysis page: four primary charts with their findings, linked brushing, details on demand",
-      "ms": 10592
+      "ms": 9233
     },
     {
       "name": "Data refresh: icon in the top bar, last-updated time, a saved CSV edit appears in place, a broken edit keeps the old data",
-      "ms": 2593
+      "ms": 2537
     },
     {
       "name": "Colour theme: follows the device by default, menu beside the flags, a pick outlasts a reload, back to the device setting",
-      "ms": 5391
+      "ms": 5504
     },
     {
       "name": "Viewport 360x800: no horizontal overflow; province details reachable",
-      "ms": 3391
+      "ms": 3402
     },
     {
       "name": "Viewport 390x844: no horizontal overflow; province details reachable",
-      "ms": 3201
+      "ms": 3294
     },
     {
       "name": "Viewport 430x932: no horizontal overflow; province details reachable",
-      "ms": 3209
+      "ms": 3350
     },
     {
       "name": "Viewport 768x1024: no horizontal overflow; province details reachable",
-      "ms": 3290
+      "ms": 3384
     },
     {
       "name": "Viewport 1366x768: no horizontal overflow; province details reachable",
-      "ms": 2620
+      "ms": 2665
     },
     {
       "name": "Viewport 1440x900: no horizontal overflow; province details reachable",
-      "ms": 2666
+      "ms": 2721
     },
     {
       "name": "Viewport 1920x1080: no horizontal overflow; province details reachable",
-      "ms": 2823
+      "ms": 2799
     },
     {
       "name": "Offline file:// entry with networking disabled",
-      "ms": 742
+      "ms": 805
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\two-page-2026-11-06T15-25-39-919Z",
+  "screenshots": "tests\\screenshots\\two-page-2026-11-07T11-02-56-436Z",
   "labelledTilesAt1440": 77,
   "labelPxAt1440": [
     8.5,
@@ -91,17 +95,17 @@
   ],
   "sha256": {
     "index.html": "d20a09c3861243839c131ec797690af1acf1f6313a5d5ba86a304a1bc7134065",
-    "e69.css": "f7e679daaad049fed4d6e9908baab765fea415ccade955e8bc3718ad695cf080",
-    "js/e69-app.js": "5bcfebd9cee8b5fa7d4ef6a446c5ac978d7ecf33dc1d59602221ba047fa80c70",
-    "js/e69-analysis.js": "b5c685b673559a91220906b569ba298715666bef20b97e11b7bc7a67a28c47ca",
+    "e69.css": "9362151e4e7cdd35b4f58737a4020b2e20d855c81b525cb9747f720d4580b7b5",
+    "js/e69-app.js": "e84f70fefe290ffddbcf5c58bc6d7045dad2e2bfd765eba7834c8db18c8a4564",
+    "js/e69-analysis.js": "5e6c98b624261044dfc425cc2b4303d098a7daeb11bf100e1084d9cb3ced8de8",
     "js/e69-data.js": "1ce736bfce4ddec56e7b3b07df0fc717193ffcebc4525771bb81fbddbd0cc1b4",
-    "js/e69-source.js": "228af005d972e66eda5ee049be58bea175a8db85fde926120e061728eda4cdce",
+    "js/e69-source.js": "2eeb615c0cb1ec2c3d6923c4d13ea54bf17b7d32b674dc13e77a966a021ea0d9",
     "js/model.js": "cbb51070d22fdbc2d8358657e51242dec9f9208f80923b2082dfa498454a1ff5",
     "reference-data.js": "8226374f52ab9f6193c7b740077b01ff4f16ae627a514fee8a5a3fe01146965e",
-    "data/bundle.js": "126187175a6f4888071ba4bfe860f0a3b647894b31fa549682d02c561f0206e1",
+    "data/bundle.js": "1dc79b53dc7c4b5f778064dd053d20240e00e395e8d8fcab823282d359b7b6c9",
     "data/2569/candidates.csv": "1eb4c3c5c80e468e982c1689bb0b8fe8cdd13a9f8bfae798b2cca48812f82036",
     "data/2569/constituencies.csv": "d5a237812d097e1f7166cbe82dc5816cd0b4aa4d6110acbdd8d7dd99cb84a653",
-    "data/2569/election.csv": "ebb33df6287a49b71261b78361e58c78334acdfd3aa919044d569d9d81af66c6",
+    "data/2569/election.csv": "cfd5fd3379401443f406e58a86c0f48703d7ffb3ea9cb54b9a8d9f497a26d002",
     "data/2569/parties.csv": "a7a6a1dcba09d6b6f9c73b8a6979847211e065f65591e3e06c2403e403494b8a",
     "data/2569/party_list_votes.csv": "ed7e8fc9ba66fa1f9ff609521364dd3d4e9b20d8aec61fb9fa29110677f17e36",
     "data/2569/provinces.csv": "e2326c7fa253241fa879ff530d5df587153010dda86be505819b5e416baa9b58",
@@ -111,5 +115,5 @@
   },
   "browser": "156.0.8078.80",
   "passed": true,
-  "finished": "2026-11-06T15:26:38.901Z"
+  "finished": "2026-11-07T11:04:01.360Z"
 }
