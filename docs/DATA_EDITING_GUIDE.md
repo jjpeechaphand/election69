@@ -55,6 +55,8 @@ dist/data/
 
 รูปบุคคลให้วางไฟล์ไว้ใน `dist/assets/candidates/` แล้วใส่เส้นทาง เช่น `assets/candidates/anutin.png` (PNG พื้นหลังโปร่งใส ภาพจัตุรัส ศีรษะอยู่ช่วงบน)
 
+รูปผู้สมัครแบบแบ่งเขตไม่ต้องใส่ทีละแถว: ตั้ง `candidate_photos` ใน election.csv ครั้งเดียว แล้ววางไฟล์ชื่อตามรหัสผู้สมัครของ กกต. ไว้ในโฟลเดอร์นั้น (ชุด 2569 อยู่ที่ `dist/assets/candidates/2569/` สร้างด้วย `scripts/fetch_mp_portraits.py` แล้ว `scripts/prepare_mp_portraits.py` ซึ่งตัดพื้นหลังและจัดกรอบเหมือนรูปหัวหน้าพรรค ดู DATA_PIPELINE.md) ถ้าผู้สมัครคนใดไม่มีรูป ให้ใส่รหัสใน `candidate_photos_missing` สคริปต์ตรวจข้อมูลจะเตือนเมื่อพบผู้สมัครที่ไม่มีไฟล์รูปและไม่อยู่ในรายการนี้
+
 ### 3.3 เพิ่มการเลือกตั้งครั้งใหม่ (เช่น ปี 2573)
 1. คัดลอกโฟลเดอร์ `dist/data/2569` เป็น `dist/data/2573` (ไม่ต้องคัดลอก export_manifest.json)
 2. แก้ `election.csv`: election_id = 2573, election_date, จำนวนที่นั่ง, source_updated_at และล้างค่า official_* กับ check_* ที่เป็นของปีเก่า
@@ -107,6 +109,8 @@ python -I -X utf8 scripts/build_data_bundle.py
 | official_eligible, official_turnout, official_valid, official_invalid, official_no_vote | ยอดทั้งประเทศตามประกาศ ใช้ตรวจความถูกต้อง เว้นว่างได้ |
 | district_shapes | ไฟล์ขอบเขตเขตเลือกตั้ง (ค่าเดิม district-shapes.js) |
 | density_source | แหล่งข้อมูลความหนาแน่นประชากร |
+| candidate_photos | ไม่บังคับ: ตำแหน่งรูปผู้สมัครแบบแบ่งเขต โดย `{id}` คือรหัสผู้สมัครของ กกต. = อักษรย่อจังหวัด (code_en ใน provinces.csv)\_เขต\_หมายเลขผู้สมัคร เช่น `assets/candidates/2569/{id}.webp` → `BKK_1_5.webp` เว้นว่าง = ไม่แสดงรูป (ใช้รูปสัญลักษณ์) |
+| candidate_photos_missing | ไม่บังคับ: รหัสผู้สมัครที่ไม่มีไฟล์รูป คั่นด้วย ` \| ` เว็บจะแสดงรูปสัญลักษณ์โดยไม่ลองโหลดไฟล์ (2569: CBI_2_8 และ NMA_5_3 คือบุคคลที่ถูกคำสั่งถอนชื่อ ซึ่ง กกต. ไม่มีรูป) |
 | check_* | ผลตรวจเทียบกับเว็บไซต์ กกต. (ไม่บังคับ) แสดงในหน้าต่างที่มาข้อมูล |
 
 ### parties.csv
