@@ -1,6 +1,6 @@
 /* Data Analysis page: graph-first workspace with coordinated views.
    Global filter = region (restricts constituencies); highlights = party, province, selected constituency;
-   brushed subset = constituencies selected by dragging in the margin histogram or the scatterplot. */
+   selected subset ("brush") = the constituencies of one band picked in the who-beat-whom flow chart. */
 (function () {
   'use strict';
   const E = window.E69, A = E.analysis = {};
@@ -26,12 +26,12 @@
   /* ---------- tabs ---------- */
   // Tab names say what each view answers, in everyday words.
   const DESKTOP_TABS = () => [
-    ['core', t('ภาพรวม 4 กราฟ', 'Four main charts'), ['seats', 'margin', 'majority', 'ballots']],
+    ['core', t('ภาพรวม 4 กราฟ', 'Four main charts'), ['seats', 'rivals', 'tiers', 'ballots']],
     ['region', t('คะแนนแต่ละภาค', 'Votes by region'), ['region']],
     ['density', t('เมืองกับชนบท', 'Cities and countryside'), ['density']],
     ['compare', t('เปรียบเทียบเขตที่สนใจ', 'Compare constituencies'), ['compare']],
   ];
-  const MOBILE_TABS = () => [['seats', t('คะแนนกับที่นั่ง', 'Votes and seats')], ['margin', t('ชนะกันห่างแค่ไหน', 'How close races were')], ['majority', t('ได้เสียงข้างมากไหม', 'Majority or not')], ['ballots', t('คะแนนคนกับคะแนนพรรค', 'Candidate vs party votes')], ['region', t('คะแนนแต่ละภาค', 'Votes by region')], ['density', t('เมืองกับชนบท', 'Cities and countryside')], ['compare', t('เปรียบเทียบเขตที่สนใจ', 'Compare constituencies')]];
+  const MOBILE_TABS = () => [['seats', t('คะแนนกับที่นั่ง', 'Votes and seats')], ['rivals', t('ใครชนะใคร', 'Who beat whom')], ['tiers', t('ส.ส.เขตกับบัญชีรายชื่อ', 'Constituency vs list seats')], ['ballots', t('คะแนนคนกับคะแนนพรรค', 'Candidate vs party votes')], ['region', t('คะแนนแต่ละภาค', 'Votes by region')], ['density', t('เมืองกับชนบท', 'Cities and countryside')], ['compare', t('เปรียบเทียบเขตที่สนใจ', 'Compare constituencies')]];
   const CMP_MAX = 3;   // constituencies the comparison holds, all picked by the reader
 
   /* ---------- chart definitions ---------- */
@@ -40,35 +40,41 @@
   const sel = (k, opts, label) => '<span class="ctl"><label class="ctl-label" for="ctl-' + k + '">' + label + '</label><select id="ctl-' + k + '" data-k="' + k + '">' + opts.map(([v, l]) => '<option value="' + esc(v) + '"' + (String(S()[k]) === v ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></span>';
   const scopeLabel = () => S().region ? E.rname(S().region) : t('ทั้งประเทศ', 'nationwide');
 
+  // Four questions, four chart types chosen for their data: two quantities in one unit per party → a scatter against
+  // the "seats = votes" line (A); the spread of one quantity over 400 constituencies → a histogram (B); one measure in
+  // two tiers per party, where the ranks swap → a slope chart (C); one signed difference per party or constituency →
+  // diverging bars from zero (D).
   const CH = {
     // Each card's line under the title (q) is the chart's main finding, computed from the data on screen.
     seats: {
       title: () => t('แต่ละพรรคได้ที่นั่งเกินหรือขาดจากคะแนนเสียงที่ได้แค่ไหน?', 'Did each party win more or fewer seats than its share of the vote?'),
       q: () => seatInsight(),
-      controls: () => { const c = E.config(); return seg('seatTier', [['const', t('ส.ส.เขต ' + c.constituencySeats, 'Constituency ' + c.constituencySeats)], ['list', t('บัญชีรายชื่อ ' + c.listSeats, 'Party list ' + c.listSeats)], ['all', t('ทั้งสภา ' + c.totalSeats, 'Whole House ' + c.totalSeats)]], t('ที่นั่ง', 'Seats')) + seg('seatTop', [['5', '5'], ['10', '10'], ['all', t('ทุกพรรค', 'All')]], t('แสดง', 'Show')); },
+      controls: () => { const c = E.config(); return seg('seatTier', [['const', t('ส.ส.เขต ' + c.constituencySeats, 'Constituency ' + c.constituencySeats)], ['list', t('บัญชีรายชื่อ ' + c.listSeats, 'Party list ' + c.listSeats)], ['all', t('ทั้งสภา ' + c.totalSeats, 'Whole House ' + c.totalSeats)]], t('ที่นั่ง', 'Seats')); },
       foot: () => seatFoot(),
       draw: drawSeats, table: tableSeats,
     },
-    margin: {
-      title: () => t('เขตเลือกตั้งต่าง ๆ ชนะกันสูสีมากน้อยแค่ไหน?', 'How close were the races?'),
-      q: () => marginInsight(),
-      controls: () => seg('marginMetric', [['pct', t('% ของบัตรดี', '% of valid')], ['votes', t('คะแนน', 'votes')]], t('หน่วย', 'Unit')) + '<span class="ctl"><span class="ctl-label">' + t('ช่วงด่วน', 'Quick range') + '</span><span class="seg">' + [['0,5', '< 5%'], ['5,10', '5–10%'], ['10,20', '10–20%']].map(([v, l]) => '<button type="button" data-act="brush-preset" data-v="' + v + '">' + l + '</button>').join('') + '</span></span>',
-      foot: () => '<span>' + t('ลากหรือคลิกแท่งเพื่อเลือกช่วง · ส่วนต่าง = (อันดับ 1 − อันดับ 2) ÷ บัตรดี · ความสูสีไม่ใช่หลักฐานความผิดปกติ', 'Drag or click bars to select · margin = (1st − 2nd) ÷ valid ballots · a close race is not evidence of irregularity') + scopeNote() + '</span>' + brushFoot(),
-      draw: drawMargin, table: tableMargin,
+    // Replaced "how close were the races" (a margin histogram readers could not use, 7 Nov 2026).
+    rivals: {
+      title: () => t('ผู้ชนะแต่ละเขตชนะพรรคไหนมา?', 'Which party did each winner beat?'),
+      q: () => rivalInsight(),
+      controls: () => '',
+      foot: () => rivalFoot(),
+      draw: drawRivals, table: tableRivals,
     },
-    // Replaces "turnout vs closeness" (r = −0.21 nationwide: almost no pattern to show).
-    majority: {
-      title: () => t('ผู้ชนะแต่ละเขตได้เสียงข้างมากจริงไหม?', 'Did the winners win a majority of the vote?'),
-      q: () => majorityInsight(),
-      controls: () => '<span class="ctl"><span class="ctl-label">' + t('ช่วงด่วน', 'Quick range') + '</span><span class="seg">' + [['0,40', t('ต่ำกว่า 40%', 'under 40%')], ['40,50', '40–50%'], ['50,100', t('ครึ่งขึ้นไป', 'half or more')]].map(([v, l]) => '<button type="button" data-act="majority-preset" data-v="' + v + '">' + l + '</button>').join('') + '</span></span>',
-      foot: () => '<span>' + t('หนึ่งจุดคือหนึ่งเขต ลากเพื่อเลือกช่วง คลิกจุดเพื่อดูเขต · ผู้ชนะคือคนที่ได้คะแนนมากที่สุด ไม่จำเป็นต้องเกินครึ่ง', 'One dot per constituency; drag to select, click a dot for details · the most votes wins, not necessarily a majority') + scopeNote() + '</span>' + brushFoot(),
-      draw: drawMajority, table: tableMajority,
+    // Replaced "did the winners win a majority" (7 Nov 2026): where each party's seats came from. The two tiers pull
+    // in opposite directions for the two largest parties, which a slope from one tier to the other shows as crossing lines.
+    tiers: {
+      title: () => t('แต่ละพรรคได้ ส.ส. มาจากเขตหรือจากบัญชีรายชื่อ?', 'Did each party win its seats in constituencies or from the party list?'),
+      q: () => tierInsight(),
+      controls: () => '',
+      foot: () => tierFoot(),
+      draw: drawTiers, table: tableTiers,
     },
     ballots: {
       title: () => t('พรรคไหนได้คะแนนเพราะตัวผู้สมัคร พรรคไหนได้เพราะชื่อพรรค?', 'Which parties drew votes through their candidates, and which through the party name?'),
       q: () => ballotInsight(),
       controls: () => seg('ballotMode', [['party', t('รายพรรค', 'By party')], ['district', t('รายเขต', 'By constituency')]], t('ระดับ', 'Level')) + seg('ballotUnit', [['share', t('สัดส่วน %', 'Share %')], ['votes', t('คะแนนดิบ', 'Raw votes')]], t('หน่วย', 'Unit')) +
-        (S().ballotMode === 'party' ? sel('ballotSort', [['seats', t('ขนาดพรรค (ที่นั่ง)', 'Party size (seats)')], ['gap', t('ส่วนต่าง (บัญชี − ผู้สมัคร)', 'Gap (list − candidate)')], ['list', t('คะแนนบัญชีรายชื่อ', 'List share')], ['cand', t('คะแนนผู้สมัคร', 'Candidate share')]], t('เรียง', 'Sort'))
+        (S().ballotMode === 'party' ? sel('ballotSort', [['seats', t('ขนาดพรรค (ที่นั่ง)', 'Party size (seats)')], ['gap', t('ส่วนต่าง (พรรค − ผู้สมัคร)', 'Gap (list − candidate)')], ['list', t('คะแนนบัญชีรายชื่อ', 'List share')], ['cand', t('คะแนนผู้สมัคร', 'Candidate share')]], t('เรียง', 'Sort'))
           : sel('ballotSort', [['gap', t('บัญชีสูงกว่าผู้สมัครมากสุด', 'List above candidate most')], ['gapAsc', t('ผู้สมัครสูงกว่าบัญชีมากสุด', 'Candidate above list most')], ['abs', t('ต่างกันมากสุด (ค่าสัมบูรณ์)', 'Largest absolute gap')]], t('เรียง', 'Sort')) + sel('ballotTop', [['15', '15'], ['30', '30'], ['all', t('ทั้งหมด', 'All')]], t('จำนวน', 'Rows'))),
       foot: () => ballotFoot(), draw: drawBallots, table: tableBallots, scroll: () => true,
     },
@@ -100,7 +106,7 @@
 
   function brushFoot() {
     const b = S().brush; if (!b) return '';
-    return '<span><b>' + esc(b.label) + '</b> · ' + b.ids.length + t(' เขต', ' constituencies') + ' <button type="button" class="tbl-toggle" data-act="brush-list">' + t('ดูรายชื่อเขต', 'List them') + '</button> <button type="button" class="tbl-toggle" data-act="unset" data-v="brush">' + t('ล้างช่วง', 'Clear') + '</button></span>';
+    return '<span><b>' + esc(b.label) + '</b> · ' + b.ids.length + t(' เขต', ' constituencies') + ' <button type="button" class="tbl-toggle" data-act="brush-list">' + t('ดูรายชื่อเขต', 'List them') + '</button> <button type="button" class="tbl-toggle" data-act="unset" data-v="brush">' + t('ล้างการเลือก', 'Clear') + '</button></span>';
   }
 
   /* ---------- page render ---------- */
@@ -182,8 +188,8 @@
     const all = D.parties.map(p => ({ name: p.name, color: p.color, seats: seatsOf(p) || 0, votes: votesOf(p) || 0 }))
       .map(d => Object.assign(d, { seatPct: d.seats / seatTotal * 100, votePct: d.votes / voteTotal * 100 })).filter(d => d.seats > 0 || d.votePct >= 1);
     all.forEach(d => { d.gap = d.seatPct - d.votePct; });
-    all.sort(s.seatSort === 'gap' ? (a, b) => b.gap - a.gap : (a, b) => b.seats - a.seats || b.votePct - a.votePct);
-    return { list: s.seatTop === 'all' ? all : all.slice(0, Number(s.seatTop) || 10), all, tier, seatTotal };
+    all.sort((a, b) => b.seats - a.seats || b.votePct - a.votePct);
+    return { list: all, all, tier, seatTotal };
   }
   const pts = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(1);
   function seatInsight() {
@@ -201,38 +207,65 @@
     return '<span>' + how + (bad.length ? ' · ⚠ ' + bad.map(p => p.name).join(', ') : '') + (S().region ? ' · ' + t('ตัวกรองภูมิภาคไม่ใช้กับกราฟนี้', 'the region filter does not apply here') : '') + '</span>';
   }
   const scopeNote = () => S().region ? ' · ' + t('ขอบเขต: ', 'scope: ') + scopeLabel() : '';
+  // Labels placed greedily: each tries a few spots around its anchor and takes the first that overlaps no earlier label
+  // or mark and stays inside the plot; if none is free it keeps the first spot. `spots` are [dx, dy, anchor] offsets.
+  function placeLabels(items, bounds, marks) {
+    const taken = marks.slice(), hit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+    for (const it of items) {
+      let pick = null;
+      for (const [dx, dy, anchor] of it.spots) {
+        const x = it.x + dx, y = it.y + dy, x0 = anchor === 'end' ? x - it.w : anchor === 'middle' ? x - it.w / 2 : x, box = { x0, x1: x0 + it.w, y0: y - it.h / 2, y1: y + it.h / 2 };
+        const inside = box.x0 >= bounds.x0 && box.x1 <= bounds.x1 && box.y0 >= bounds.y0 && box.y1 <= bounds.y1;
+        if (inside && !taken.some(b => hit(b, box))) { pick = { x, y, anchor, box }; break; }
+        if (!pick) pick = { x, y, anchor, box, fallback: true };
+      }
+      if (!pick.fallback) taken.push(pick.box);
+      Object.assign(it, { lx: pick.x, ly: pick.y, anchor: pick.anchor });
+    }
+    return items;
+  }
+  // A scatter of seat share against vote share, one dot per party, on one scale. Dots on the dashed line won seats in
+  // proportion to their votes; a dot above it won more, below it fewer, and the short stem to the line is the gap.
   function drawSeats(el) {
     const s = S(), { list } = seatVoteRows(), W = el.clientWidth, H = el.clientHeight;
     if (!list.length) return emptyState(el, t('ไม่มีข้อมูล', 'No data'));
-    const label = d => pts(d.gap) + t(' จุด · ', ' pts · ') + d.seats + t(' ที่นั่ง', ' seats');
-    const m = { t: 24, r: Math.min(150, d3.max(list, d => textW(label(d), 11.5)) + 14), b: 26, l: Math.min(150, Math.max(...list.map(d => textW(d.name, 12))) + 16) };
-    const iw = Math.max(60, W - m.l - m.r), ih = Math.max(40, H - m.t - m.b);
-    const y = d3.scaleBand(list.map(d => d.name), [0, ih]).paddingInner(0.25).paddingOuter(0.1);
-    const x = d3.scaleLinear([0, d3.max(list, d => Math.max(d.seatPct, d.votePct)) || 1], [0, iw]).nice();
-    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('สัดส่วนคะแนนกับสัดส่วนที่นั่ง: ', 'Vote share and seat share: ') + list.map(d => d.name + ' ' + fmtP(d.votePct, 1) + ' → ' + fmtP(d.seatPct, 1)).join(', '));
-    const lg = svg.append('g').attr('transform', 'translate(' + m.l + ',9)').attr('font-size', 11.5);
-    lg.append('circle').attr('cx', 5).attr('r', 4.5).attr('fill', C().ring).attr('stroke', C().text3).attr('stroke-width', 2);
-    lg.append('text').attr('x', 14).attr('dy', '.35em').attr('fill', C().text2).text(t('สัดส่วนคะแนน', 'vote share'));
-    const lx = 26 + textW(t('สัดส่วนคะแนน', 'vote share'), 11.5) + 12;
-    lg.append('circle').attr('cx', lx + 5).attr('r', 5).attr('fill', C().text3);
-    lg.append('text').attr('x', lx + 14).attr('dy', '.35em').attr('fill', C().text2).text(t('สัดส่วนที่นั่ง', 'seat share'));
-    const g = svg.append('g').attr('transform', 'translate(' + m.l + ',' + m.t + ')');
-    const ticks = Math.max(2, Math.floor(iw / 70));
-    g.append('g').attr('class', 'grid').call(d3.axisBottom(x).ticks(ticks).tickSize(ih).tickFormat(''));
-    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(ticks).tickFormat(v => v + '%'));
-    const rows = g.selectAll('g.row').data(list).join('g').attr('class', d => 'row mark' + (s.party && s.party !== d.name ? ' dim' : '')).attr('data-seats', d => d.seats)
-      .attr('transform', d => 'translate(0,' + (y(d.name) + y.bandwidth() / 2) + ')').style('cursor', 'pointer').attr('role', 'button').attr('aria-pressed', d => String(s.party === d.name))
+    const top = d3.max(list, d => Math.max(d.seatPct, d.votePct)) || 1, room = yTitleRoom(d3.scaleLinear([0, top * 1.06]).nice());
+    const m = { t: 12, r: 14, b: 36, l: room.left }, iw = Math.max(80, W - m.l - m.r), ih = Math.max(60, H - m.t - m.b);
+    const x = d3.scaleLinear([0, top * 1.06], [0, iw]).nice(), y = d3.scaleLinear([0, x.domain()[1]], [ih, 0]);
+    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('สัดส่วนที่นั่งเทียบกับสัดส่วนคะแนน: ', 'Seat share against vote share: ') + list.slice(0, 8).map(d => d.name + ' ' + fmtP(d.votePct, 1) + ' → ' + fmtP(d.seatPct, 1)).join(', '));
+    const g = svg.append('g').attr('transform', 'translate(' + m.l + ',' + m.t + ')'), mx = x.domain()[1];
+    // Above the line: more seats than votes (shaded); the line itself: seats = votes.
+    g.append('path').attr('d', 'M0,' + ih + 'L' + iw + ',' + y(mx) + 'L0,' + y(mx) + 'Z').attr('fill', C().band).attr('opacity', 0.7);
+    const tx = Math.max(2, Math.floor(iw / 70)), ty = Math.max(2, Math.floor(ih / 45));
+    g.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(ty).tickSize(-iw).tickFormat(''));
+    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(tx).tickFormat(v => v + '%'));
+    g.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(ty).tickFormat(v => v + '%'));
+    g.append('text').attr('class', 'axis-title').attr('x', iw).attr('y', ih + 30).attr('text-anchor', 'end').text(t('สัดส่วนคะแนน →', 'vote share →'));
+    g.append('text').attr('class', 'axis-title').attr('transform', 'rotate(-90)').attr('x', 0).attr('y', room.title).attr('text-anchor', 'end').text(t('สัดส่วนที่นั่ง →', 'seat share →'));
+    g.append('line').attr('x1', 0).attr('y1', ih).attr('x2', x(mx)).attr('y2', y(mx)).attr('stroke', C().text3).attr('stroke-width', 1.2).attr('stroke-dasharray', '5 4');
+    const note = (txt, px, py, anchor) => g.append('text').attr('x', px).attr('y', py).attr('text-anchor', anchor).attr('font-size', 11).attr('font-weight', 600).attr('fill', C().text3).text(txt);
+    note(t('ได้ที่นั่งเกินคะแนน', 'more seats than votes'), 8, 14, 'start');
+    note(t('ได้ที่นั่งน้อยกว่าคะแนน', 'fewer seats than votes'), iw - 6, ih - 8, 'end');
+    note(t('ที่นั่ง = คะแนน', 'seats = votes'), x(mx * 0.78) + 6, y(mx * 0.78) + 14, 'start').attr('font-weight', 500);
+    // Small parties draw first and smaller, so the large ones sit on top.
+    const big = d => d.seats >= 10 || d.votePct >= 3, order = list.slice().sort((a, b) => a.seats - b.seats || a.votePct - b.votePct);
+    const dots = g.selectAll('g.pt').data(order).join('g').attr('class', d => 'pt mark' + (s.party && s.party !== d.name ? ' dim' : '')).attr('data-seats', d => d.seats)
+      .attr('transform', d => 'translate(' + x(d.votePct) + ',' + y(d.seatPct) + ')').style('cursor', 'pointer').attr('role', 'button').attr('aria-pressed', d => String(s.party === d.name))
       .attr('aria-label', d => d.name + ': ' + t('คะแนน ', 'votes ') + fmtP(d.votePct, 1) + ', ' + t('ที่นั่ง ', 'seats ') + fmtP(d.seatPct, 1) + ' (' + d.seats + ')');
-    rows.append('rect').attr('x', -m.l).attr('y', -y.step() / 2).attr('width', W).attr('height', y.step()).attr('fill', 'transparent');
-    rows.append('line').attr('x1', d => x(Math.min(d.votePct, d.seatPct))).attr('x2', d => x(Math.max(d.votePct, d.seatPct))).attr('stroke', d => d.color).attr('stroke-opacity', 0.45).attr('stroke-width', 3.5).attr('stroke-linecap', 'round');
-    rows.append('circle').attr('cx', d => x(d.votePct)).attr('r', 5).attr('fill', C().ring).attr('stroke', d => d.color).attr('stroke-width', 2.2);
-    rows.append('circle').attr('cx', d => x(d.seatPct)).attr('r', 6).attr('fill', d => d.color).attr('stroke', C().ring).attr('stroke-width', 1.5);
-    rows.append('text').attr('x', -8).attr('dy', '.35em').attr('text-anchor', 'end').attr('font-size', 12).attr('font-weight', d => s.party === d.name ? 700 : 500).attr('fill', C().text).text(d => d.name);
-    rows.append('text').attr('x', d => x(Math.max(d.votePct, d.seatPct)) + 10).attr('dy', '.35em').attr('font-size', 11.5).attr('font-weight', d => d.gap >= 1 ? 700 : 500).attr('fill', d => d.gap >= 1 ? C().text : C().text3).text(label);
+    dots.append('line').attr('y2', d => y(d.votePct) - y(d.seatPct)).attr('stroke', d => d.color).attr('stroke-width', d => big(d) ? 2.4 : 1.2).attr('stroke-opacity', 0.55).attr('stroke-linecap', 'round');
+    dots.append('circle').attr('r', d => big(d) ? 7 : 4).attr('fill', d => d.color).attr('stroke', C().ring).attr('stroke-width', 1.6);
+    dots.append('circle').attr('r', 14).attr('fill', 'transparent');   // easier to point at
+    // Names for the larger parties, with how many points they won above or below their votes.
+    const lab = d => d.name + ' ' + pts(d.gap);
+    const items = list.filter(big).map(d => ({ d, x: x(d.votePct), y: y(d.seatPct), w: textW(lab(d), 11.5) + 2, h: 14, spots: [[11, 0, 'start'], [-11, 0, 'end'], [0, -15, 'middle'], [0, 16, 'middle'], [11, -12, 'start'], [11, 12, 'start'], [-11, -12, 'end'], [-11, 12, 'end']] }));
+    placeLabels(items, { x0: 0, x1: iw, y0: 0, y1: ih }, list.filter(big).map(d => ({ x0: x(d.votePct) - 8, x1: x(d.votePct) + 8, y0: y(d.seatPct) - 8, y1: y(d.seatPct) + 8 })));
+    g.append('g').attr('class', 'pt-labels').attr('pointer-events', 'none').selectAll('text').data(items).join('text').attr('class', d => 'mark' + (s.party && s.party !== d.d.name ? ' dim' : ''))
+      .attr('x', d => d.lx).attr('y', d => d.ly).attr('dy', '.35em').attr('text-anchor', d => d.anchor).attr('font-size', 11.5).attr('font-weight', d => s.party === d.d.name ? 700 : 600)
+      .attr('fill', C().text).attr('paint-order', 'stroke').attr('stroke', C().ring).attr('stroke-width', 3).attr('stroke-linejoin', 'round').text(d => lab(d.d));
     const pick = (ev, d) => E.setState({ party: s.party === d.name ? '' : d.name });
-    rows.on('pointermove', (ev, d) => E.chartTip(ev, '<b>' + esc(d.name) + '</b>' + tipRows([[t('สัดส่วนคะแนน', 'Vote share'), fmtP(d.votePct, 1) + ' (' + fmt(d.votes) + ')'], [t('สัดส่วนที่นั่ง', 'Seat share'), fmtP(d.seatPct, 1) + ' (' + d.seats + ')'], [t('ที่นั่งเกิน/ขาดจากคะแนน', 'Seats above/below votes'), pts(d.gap) + t(' จุด', ' pts')]]) + '<small>' + t('คลิกเพื่อไฮไลต์พรรคทุกกราฟ', 'Click to highlight this party everywhere') + '</small>'))
+    dots.on('pointermove', (ev, d) => E.chartTip(ev, '<b>' + esc(d.name) + '</b>' + tipRows([[t('สัดส่วนคะแนน', 'Vote share'), fmtP(d.votePct, 1) + ' (' + fmt(d.votes) + ')'], [t('สัดส่วนที่นั่ง', 'Seat share'), fmtP(d.seatPct, 1) + ' (' + d.seats + ')'], [t('ที่นั่งเกิน/ขาดจากคะแนน', 'Seats above/below votes'), pts(d.gap) + t(' จุด', ' pts')]]) + '<small>' + t('คลิกเพื่อไฮไลต์พรรคทุกกราฟ', 'Click to highlight this party everywhere') + '</small>'))
       .on('pointerleave', E.hideChartTip).on('click', pick);
-    keyActivate(rows, pick);
+    keyActivate(dots, pick);
   }
   function tableSeats() {
     return '<table><thead><tr><th>' + t('พรรค', 'Party') + '</th><th class="n">' + t('คะแนน', 'Votes') + '</th><th class="n">' + t('สัดส่วนคะแนน', 'Vote share') + '</th><th class="n">' + t('ที่นั่ง', 'Seats') + '</th><th class="n">' + t('สัดส่วนที่นั่ง', 'Seat share') + '</th><th class="n">' + t('ต่าง (จุด)', 'Gap (pts)') + '</th></tr></thead><tbody>' +
@@ -245,209 +278,201 @@
     if (!b && !s.party && !s.province) return null;
     return r => (!b || b.has(r.id)) && (!s.party || r.winnerParty === s.party) && (!s.province || r.provinceCode === s.province);
   }
-  function highlightLabel() {
-    const s = S(), parts = [];
-    if (s.brush) parts.push(s.brush.label);
-    if (s.party) parts.push(t('ชนะโดย ', 'won by ') + s.party);
-    if (s.province) parts.push(E.pname(s.province));
-    return parts.join(' · ');
+
+  /* ---------- B: who beat whom (winner's party → runner-up's party) ---------- */
+  // Replaced the margin histogram (7 Nov 2026), which readers could not use. Every constituency is in effect a contest
+  // between its winner and its runner-up; a flow chart (Sankey) joins the winner's party (left) to the runner-up's party
+  // (right), each band as thick as its number of constituencies. It answers who the main challenger was and which
+  // contests decided the election, nationwide or (with the region filter) in one region. Parties with only a few
+  // finishes on one side share an "others" node there; a highlighted party always keeps its own.
+  const OTHER = '__other';
+  let rivalDraws = 0;
+  function rivalData() {
+    const s = S(), rows = E.scopeRows().filter(r => r.winnerParty && r.runner && r.runner.party);
+    const minN = Math.max(3, Math.round(rows.length * 0.025));
+    const side = key => { const n = d3.rollup(rows, v => v.length, key); return { n, keep: new Set([...n].filter(([p, c]) => c >= minN || p === s.party).map(([p]) => p)) }; };
+    const W = side(r => r.winnerParty), R = side(r => r.runner.party);
+    const wKey = r => W.keep.has(r.winnerParty) ? r.winnerParty : OTHER, rKey = r => R.keep.has(r.runner.party) ? r.runner.party : OTHER;
+    const byKey = new Map();
+    for (const r of rows) { const k = wKey(r) + '|' + rKey(r); if (!byKey.has(k)) byKey.set(k, { key: k, w: wKey(r), r: rKey(r), rows: [] }); byKey.get(k).rows.push(r); }
+    const flows = [...byKey.values()].map(f => Object.assign(f, { n: f.rows.length }));
+    const nodes = (key, sideInfo) => d3.rollups(rows, v => v.length, key).sort((a, b) => (a[0] === OTHER) - (b[0] === OTHER) || b[1] - a[1])
+      .map(([party, n]) => ({ party, n, parties: party === OTHER ? [...sideInfo.n].filter(([p]) => !sideInfo.keep.has(p)).sort((a, b) => b[1] - a[1]) : null }));
+    return { rows, flows, left: nodes(wKey, W), right: nodes(rKey, R) };
+  }
+  const rivalName = p => p === OTHER ? t('พรรคอื่น', 'Others') : p;
+  const bandName = f => rivalName(f.w) + t(' ชนะ ', ' beat ') + rivalName(f.r);
+  function rivalInsight() {
+    const s = S(), { rows } = rivalData(); if (!rows.length) return '';
+    const most = (list, key) => d3.greatest(d3.rollups(list, v => v.length, key), d => d[1]);
+    if (s.party) {
+      const won = rows.filter(r => r.winnerParty === s.party), second = rows.filter(r => r.runner.party === s.party);
+      const a = won.length && most(won, r => r.runner.party), b = second.length && most(second, r => r.winnerParty);
+      const part1 = won.length ? '<b>' + esc(s.party) + '</b>' + t(' ชนะ ', ' won ') + '<b>' + won.length + t(' เขต', '') + '</b>' + t(' ส่วนใหญ่ชนะ ', ', mostly against ') + esc(a[0]) + ' (' + a[1] + ')'
+        : '<b>' + esc(s.party) + '</b>' + t('ไม่ได้ชนะเขตใด', ' won no constituency');
+      const part2 = second.length ? t('ได้อันดับสอง ', 'second in ') + '<b>' + second.length + t(' เขต', '') + '</b>' + t(' ส่วนใหญ่แพ้ ', ', mostly behind ') + esc(b[0]) + ' (' + b[1] + ')' : t('ไม่ได้อันดับสองในเขตใด', 'never second');
+      return part1 + ' · ' + part2;
+    }
+    const pairs = d3.rollups(rows, v => v, r => [r.winnerParty, r.runner.party].sort().join('|')).sort((a, b) => b[1].length - a[1].length);
+    const [k, list] = pairs[0], [p, q] = k.split('|'), pw = list.filter(r => r.winnerParty === p).length;
+    const [first, second, wins] = pw >= list.length - pw ? [p, q, pw] : [q, p, list.length - pw];
+    const ru = most(rows, r => r.runner.party);
+    return t('คู่ชิงที่พบบ่อยที่สุดคือ ', 'The most common contest was ') + '<b>' + esc(first) + '</b>' + t(' กับ ', ' against ') + '<b>' + esc(second) + '</b>' + t(' ใน ', ' in ') + '<b>' + list.length + t(' จาก ', ' of ') + rows.length + t(' เขต', '') + '</b> (' + esc(first) + t('ชนะ ', ' won ') + wins + ') · ' +
+      '<b>' + esc(ru[0]) + '</b>' + t('ได้อันดับสองมากที่สุด ', ' came second most often, in ') + '<b>' + ru[1] + t(' เขต', '') + '</b>';
+  }
+  function rivalFoot() {
+    return '<span>' + t('ซ้าย: พรรคของผู้ชนะ · ขวา: พรรคที่ได้อันดับสอง · ความหนาของแถบ = จำนวนเขต · คลิกแถบเพื่อเลือกเขตชุดนั้น · คลิกชื่อพรรคเพื่อไฮไลต์พรรค', 'Left: the winner\'s party · right: the runner-up\'s party · band thickness = constituencies · click a band to select those constituencies, a party to highlight it') + scopeNote() + '</span>' + brushFoot();
+  }
+  function drawRivals(el) {
+    const s = S(), { rows, flows, left, right } = rivalData(), W = el.clientWidth, H = el.clientHeight;
+    if (!rows.length) return emptyState(el, t('ไม่มีเขตในตัวกรองนี้', 'No constituencies in this filter'));
+    const color = p => p === OTHER ? C().text4 : E.D.colorOf(p);
+    const lLabel = d => rivalName(d.party) + ' ' + d.n, rLabel = d => d.n + ' ' + rivalName(d.party);
+    const nw = 12, m = { t: 30, b: 6, l: Math.min(170, d3.max(left, d => textW(lLabel(d), 12)) + 16), r: Math.min(170, d3.max(right, d => textW(rLabel(d), 12)) + 16) };
+    const x0 = m.l, x1 = Math.max(x0 + nw + 60, W - m.r - nw), ih = Math.max(60, H - m.t - m.b);
+    const pad = Math.max(3, Math.min(10, ih * 0.03));
+    const ky = Math.min((ih - pad * (left.length - 1)) / rows.length, (ih - pad * (right.length - 1)) / rows.length);
+    const place = nodes => { let y = 0; for (const d of nodes) { d.y0 = y; d.y1 = y + d.n * ky; y = d.y1 + pad; } const off = (ih - (y - pad)) / 2; for (const d of nodes) { d.y0 += off; d.y1 += off; } };
+    place(left); place(right);
+    const Lx = new Map(left.map(d => [d.party, d])), Rx = new Map(right.map(d => [d.party, d]));
+    // Bands leave each node in the order of the nodes they reach, so they cross as little as possible.
+    for (const d of left) { let y = d.y0; for (const f of flows.filter(f => f.w === d.party).sort((a, b) => Rx.get(a.r).y0 - Rx.get(b.r).y0)) { f.ly0 = y; y += f.n * ky; f.ly1 = y; } }
+    for (const d of right) { let y = d.y0; for (const f of flows.filter(f => f.r === d.party).sort((a, b) => Lx.get(a.w).y0 - Lx.get(b.w).y0)) { f.ry0 = y; y += f.n * ky; f.ry1 = y; } }
+    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('ผู้ชนะแต่ละพรรคชนะพรรคไหน: ', 'Who beat whom: ') + flows.slice().sort((a, b) => b.n - a.n).slice(0, 6).map(f => bandName(f) + ' ' + f.n).join(', '));
+    const g = svg.append('g').attr('transform', 'translate(0,' + m.t + ')');
+    const head = (x, anchor, txt) => g.append('text').attr('x', x).attr('y', -14).attr('text-anchor', anchor).attr('font-size', 12).attr('font-weight', 700).attr('fill', C().text2).text(txt);
+    head(x0 + nw, 'end', t('ผู้ชนะ', 'Winner'));
+    head(x1, 'start', t('ได้อันดับสอง', 'Runner-up'));
+    // Bands, shaded from the winner's colour to the runner-up's.
+    const id = 'rv' + (++rivalDraws) + '-', defs = svg.append('defs'), a = x0 + nw, b = x1, xm = (a + b) / 2;
+    flows.forEach((f, i) => { const gr = defs.append('linearGradient').attr('id', id + i).attr('gradientUnits', 'userSpaceOnUse').attr('x1', a).attr('x2', b); gr.append('stop').attr('offset', '0%').attr('stop-color', color(f.w)); gr.append('stop').attr('offset', '100%').attr('stop-color', color(f.r)); f.fill = 'url(#' + id + i + ') ' + color(f.w); });
+    const picked = s.brush?.source === 'rivals' ? s.brush.key : '', lit = f => picked ? f.key === picked : !s.party || f.w === s.party || f.r === s.party;
+    const path = f => 'M' + a + ',' + f.ly0 + 'C' + xm + ',' + f.ly0 + ' ' + xm + ',' + f.ry0 + ' ' + b + ',' + f.ry0 + 'L' + b + ',' + f.ry1 + 'C' + xm + ',' + f.ry1 + ' ' + xm + ',' + f.ly1 + ' ' + a + ',' + f.ly1 + 'Z';
+    const order = flows.slice().sort((p, q) => lit(p) - lit(q) || q.n - p.n);   // lit bands on top, thin ones over thick
+    const bands = g.append('g').selectAll('path').data(order).join('path').attr('class', f => 'rv-band mark' + (lit(f) ? '' : ' dim') + (f.key === picked ? ' is-picked' : '')).attr('data-key', f => f.key).attr('data-n', f => f.n)
+      .attr('d', path).attr('fill', f => f.fill).attr('stroke', f => s.district && f.rows.some(r => r.id === s.district) ? C().text : 'none').attr('stroke-width', 1.5)
+      .attr('role', 'button').attr('aria-pressed', f => String(f.key === picked)).attr('aria-label', f => bandName(f) + ' ' + f.n + t(' เขต', ' constituencies'));
+    // Nodes and their names (moved apart where nodes are thin, with a short tick back to the node).
+    const nodeG = g.append('g');
+    const drawSide = (nodes, x, isLeft) => {
+      const sel = nodeG.selectAll('g.' + (isLeft ? 'l' : 'r')).data(nodes).join('g').attr('class', d => (isLeft ? 'l' : 'r') + ' rv-node mark' + (s.party && d.party !== s.party && !picked ? ' dim' : '')).style('cursor', d => d.party === OTHER ? 'default' : 'pointer');
+      sel.append('rect').attr('x', x).attr('y', d => d.y0).attr('width', nw).attr('height', d => Math.max(1.5, d.y1 - d.y0)).attr('rx', 2).attr('fill', d => color(d.party));
+      const labels = spread(nodes.map(d => ({ d, y: (d.y0 + d.y1) / 2 })), 15, 6, ih - 4), lx = isLeft ? x - 7 : x + nw + 7, dir = isLeft ? -1 : 1;
+      sel.append('path').attr('d', d => { const l = labels.find(v => v.d === d); return 'M' + (isLeft ? x : x + nw) + ',' + l.y + 'L' + (lx - 3 * dir) + ',' + l.ly; }).attr('stroke', C().text4).attr('fill', 'none').attr('opacity', d => { const l = labels.find(v => v.d === d); return Math.abs(l.ly - l.y) > 2 ? 1 : 0; });
+      sel.append('text').attr('x', lx).attr('y', d => labels.find(v => v.d === d).ly).attr('dy', '.35em').attr('text-anchor', isLeft ? 'end' : 'start').attr('font-size', 12)
+        .attr('font-weight', d => d.party === s.party ? 700 : 500).attr('fill', d => d.party === OTHER ? C().text3 : C().text).text(isLeft ? lLabel : rLabel);
+      return sel;
+    };
+    const lNodes = drawSide(left, x0, true), rNodes = drawSide(right, x1, false);
+    // Counts inside bands thick enough to hold them, just right of the winner's node.
+    g.append('g').attr('pointer-events', 'none').selectAll('text').data(flows.filter(f => (f.ly1 - f.ly0) >= 13 && lit(f))).join('text').attr('x', a + 5).attr('y', f => (f.ly0 + f.ly1) / 2).attr('dy', '.35em')
+      .attr('font-size', 11).attr('font-weight', 700).attr('fill', C().text).attr('paint-order', 'stroke').attr('stroke', C().ring).attr('stroke-width', 3).attr('stroke-linejoin', 'round').text(f => f.n);
+    const med = list => d3.median(list, r => r.marginPct);
+    const nameList = d => d.parties.map(([p, n]) => p + ' ' + n).join(', ');
+    bands.on('pointermove', (ev, f) => E.chartTip(ev, '<b>' + esc(bandName(f)) + '</b>' + tipRows([[t('จำนวนเขต', 'Constituencies'), f.n], [t('ชนะกันห่าง (มัธยฐาน)', 'Median margin'), fmtP(med(f.rows), 1)]]) +
+      '<small>' + esc(f.rows.slice().sort((p, q) => p.marginPct - q.marginPct).slice(0, 3).map(r => shortName(r) + ' (' + fmtP(r.marginPct, 1) + ')').join(', ')) + (f.n > 3 ? ' …' : '') + '</small><br><small>' + (f.key === picked ? t('คลิกเพื่อยกเลิกการเลือก', 'Click to clear the selection') : t('คลิกเพื่อเลือกเขตชุดนี้', 'Click to select these constituencies')) + '</small>'))
+      .on('pointerleave', E.hideChartTip);
+    const pickBand = (ev, f) => { E.hideChartTip(); E.setState({ brush: f.key === picked ? null : { source: 'rivals', key: f.key, ids: f.rows.map(r => r.id), label: bandName(f) } }); };
+    bands.on('click', pickBand); keyActivate(bands, pickBand);
+    const nodeTip = (ev, d) => {
+      if (d.party === OTHER) return E.chartTip(ev, '<b>' + t('พรรคอื่น', 'Other parties') + '</b><small>' + esc(nameList(d)) + '</small>');
+      const won = rows.filter(r => r.winnerParty === d.party).length, second = rows.filter(r => r.runner.party === d.party).length;
+      E.chartTip(ev, '<b>' + esc(d.party) + '</b>' + tipRows([[t('ชนะ', 'Won'), won + t(' เขต', '')], [t('ได้อันดับสอง', 'Second'), second + t(' เขต', '')], [t('ติดสองอันดับแรก', 'Top two'), (won + second) + t(' เขต', '')]]) + '<small>' + t('คลิกเพื่อไฮไลต์พรรคทุกกราฟ', 'Click to highlight this party everywhere') + '</small>');
+    };
+    const pickNode = (ev, d) => { if (d.party !== OTHER) E.setState({ party: s.party === d.party ? '' : d.party, brush: picked ? null : s.brush }); };
+    for (const sel of [lNodes, rNodes]) { sel.on('pointermove', nodeTip).on('pointerleave', E.hideChartTip).on('click', pickNode); keyActivate(sel.filter(d => d.party !== OTHER).attr('role', 'button').attr('aria-label', d => d.party + ': ' + d.n), pickNode); }
+  }
+  function tableRivals() {
+    const { rows } = rivalData(), pairs = d3.rollups(rows, v => v, r => r.winnerParty, r => r.runner.party).flatMap(([w, rs]) => rs.map(([r, list]) => ({ w, r, list }))).sort((a, b) => b.list.length - a.list.length);
+    return '<table><thead><tr><th>' + t('ผู้ชนะ', 'Winner') + '</th><th>' + t('อันดับสอง', 'Runner-up') + '</th><th class="n">' + t('จำนวนเขต', 'Constituencies') + '</th><th class="n">' + t('ชนะกันห่าง (มัธยฐาน)', 'Median margin') + '</th></tr></thead><tbody>' +
+      pairs.map(p => '<tr><td>' + E.dot(p.w) + esc(p.w) + '</td><td>' + E.dot(p.r) + esc(p.r) + '</td><td class="n"><b>' + p.list.length + '</b></td><td class="n">' + fmtP(d3.median(p.list, r => r.marginPct), 1) + '</td></tr>').join('') + '</tbody></table>';
   }
 
-  /* ---------- B: margin histogram ---------- */
-  function marginSetup() {
-    const s = S(), rows = E.scopeRows(), metric = s.marginMetric, val = r => metric === 'votes' ? r.marginVotes : r.marginPct;
-    const usable = rows.filter(r => finite(val(r))), max = d3.max(usable, val) || 1;
-    const step = metric === 'votes' ? d3.tickIncrement(0, max, 26) > 0 ? d3.tickIncrement(0, max, 26) : 1000 : 2.5;
-    const top = Math.ceil(max / step) * step || step, edges = d3.range(0, top + step / 2, step);
-    const bins = d3.bin().value(val).domain([0, top]).thresholds(edges.slice(1, -1))(usable);
-    return { rows: usable, val, step, top, bins, metric };
+  /* ---------- C: constituency seats against party-list seats ---------- */
+  // One line per party from its share of the constituency seats (left) to its share of the party-list seats (right).
+  // Shares, not counts, because the tiers differ in size (400 and 100 seats); the counts are in the labels. Parties
+  // with fewer than 10 seats in all share one dashed line (a highlighted small party gets its own). The parties that
+  // lead each tier are drawn heavier, so a reversal between them reads as two lines crossing.
+  function tierRows() {
+    const c = E.config(), s = S(), own = p => p.totalSeats >= 10 || p.name === s.party;
+    const rows = D.seatParties.filter(own).map(p => ({ key: p.name, label: p.name, color: p.color, cs: p.constituencySeats, ls: p.listSeats, total: p.totalSeats }));
+    const rest = D.seatParties.filter(p => !own(p));
+    if (rest.length) rows.push({ key: '__rest', label: t('พรรคอื่น ' + rest.length + ' พรรค', rest.length + ' other parties'), color: C().text4, other: true, parties: rest, cs: d3.sum(rest, p => p.constituencySeats), ls: d3.sum(rest, p => p.listSeats), total: d3.sum(rest, p => p.totalSeats) });
+    rows.forEach(r => { r.cp = r.cs / c.constituencySeats * 100; r.lp = r.ls / c.listSeats * 100; });
+    return rows;
   }
-  function setMarginBrush(a, b) {
-    const { rows, val, top, metric } = marginSetup();
-    const ids = rows.filter(r => val(r) >= a && (val(r) < b || (b >= top && val(r) <= b))).map(r => r.id);
-    const unit = metric === 'votes' ? t(' คะแนน', ' votes') : '%';
-    E.setState({ brush: { source: 'margin', metric, range: [a, b], ids, label: t('ส่วนต่าง ', 'Margin ') + fmt(a) + '–' + (metric === 'votes' ? fmt(b) : +b.toFixed(1)) + unit } });
+  function tierLeaders(rows) {
+    const named = rows.filter(r => !r.other);
+    return { topC: d3.greatest(named, r => r.cs), topL: d3.greatest(named, r => r.ls) };
   }
-  function marginInsight() {
-    const rows = E.scopeRows().filter(r => finite(r.marginPct)); if (!rows.length) return '';
-    const close = rows.filter(r => r.marginPct < 5), med = d3.median(rows, r => r.marginPct), lead = d3.rollups(close, v => v.length, r => r.winnerParty).sort((a, b) => b[1] - a[1])[0];
-    return '<b>' + close.length + t(' จาก ', ' of ') + rows.length + t(' เขต', '') + '</b>' + t('ชนะกันไม่ถึง 5%', ' races were won by under 5%') + (lead ? ' (' + esc(lead[0]) + t(' ชนะ ', ' won ') + lead[1] + t(' เขตในนั้น)', ' of them)') : '') + ' · ' + t('ครึ่งหนึ่งของเขตชนะกันห่างไม่เกิน ', 'half were won by ') + '<b>' + fmtP(med, 1) + '</b>' + t('', ' or less');
+  function tierInsight() {
+    const { topC, topL } = tierLeaders(tierRows());
+    if (!topC || !topL) return '';
+    const n = (v, p) => '<b>' + v + '</b>' + t(' ที่นั่ง', ' seats') + ' (' + fmtP(p, 0) + ')';
+    if (topC === topL) return '<b>' + esc(topC.label) + '</b>' + t('ได้มากที่สุดทั้ง ส.ส.เขต ', ' leads both tiers: ') + n(topC.cs, topC.cp) + t(' และบัญชีรายชื่อ ', ' and ') + n(topC.ls, topC.lp);
+    return '<b>' + esc(topC.label) + '</b>' + t('ได้ ส.ส.เขตมากที่สุด ', ' won the most constituencies, ') + n(topC.cs, topC.cp) + t(' แต่บัญชีรายชื่อ ', ' but from the list only ') + n(topC.ls, topC.lp) +
+      ' · <b>' + esc(topL.label) + '</b>' + t('กลับกัน ได้บัญชีรายชื่อมากที่สุด ', ' is the reverse: the most list seats, ') + n(topL.ls, topL.lp) + t(' แต่ ส.ส.เขต ', ' but constituencies ') + n(topL.cs, topL.cp);
   }
-  function drawMargin(el) {
-    const s = S(), { rows, val, step, top, bins, metric } = marginSetup(), W = el.clientWidth, H = el.clientHeight;
-    if (!rows.length) return emptyState(el, t('ไม่มีเขตในตัวกรองนี้', 'No constituencies in this filter'));
-    const m = { t: 22, r: 14, b: 42, l: 40 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const hl = highlighter(), x = d3.scaleLinear([0, top], [0, iw]), y = d3.scaleLinear([0, d3.max(bins, b => b.length) || 1], [ih, 0]).nice();
-    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('ฮิสโทแกรมส่วนต่างคะแนนของ ', 'Histogram of victory margins for ') + rows.length + t(' เขต', ' constituencies'));
+  function tierFoot() {
+    const c = E.config();
+    return '<span>' + t('ซ้าย: % ของ ส.ส.แบ่งเขต ' + c.constituencySeats + ' ที่นั่ง · ขวา: % ของ ส.ส.บัญชีรายชื่อ ' + c.listSeats + ' ที่นั่ง · ตัวเลขคือจำนวนที่นั่ง · คลิกเส้นเพื่อไฮไลต์พรรค', 'Left: % of the ' + c.constituencySeats + ' constituency seats · right: % of the ' + c.listSeats + ' list seats · numbers are seats · click a line to highlight a party') +
+      (S().region ? ' · ' + t('ตัวกรองภูมิภาคไม่ใช้กับกราฟนี้ (บัญชีรายชื่อจัดสรรทั้งประเทศ)', 'the region filter does not apply here (list seats are national)') : '') + '</span>';
+  }
+  // Moves end labels apart (top to bottom) so no two are closer than `gap`, keeping them within [lo, hi].
+  function spread(items, gap, lo, hi) {
+    const o = items.slice().sort((a, b) => a.y - b.y);
+    o.forEach((d, i) => { d.ly = i ? Math.max(d.y, o[i - 1].ly + gap) : Math.max(lo, d.y); });
+    const over = o.length ? o[o.length - 1].ly - hi : 0;
+    if (over > 0) { o[o.length - 1].ly -= over; for (let i = o.length - 2; i >= 0; i--) o[i].ly = Math.min(o[i].ly, o[i + 1].ly - gap); }
+    return items;
+  }
+  function drawTiers(el) {
+    const s = S(), rows = tierRows(), W = el.clientWidth, H = el.clientHeight, c = E.config();
+    if (!rows.length) return emptyState(el, t('ไม่มีข้อมูล', 'No data'));
+    const tight = W < 520, pc = v => Math.round(v) + '%';
+    const left = r => r.label + ' ' + r.cs + (tight ? '' : ' (' + pc(r.cp) + ')'), right = r => tight ? String(r.ls) : r.ls + ' (' + pc(r.lp) + ') ' + r.label;
+    const m = { t: 42, b: 12, l: Math.min(200, d3.max(rows, r => textW(left(r), 12)) + 18), r: Math.min(200, d3.max(rows, r => textW(right(r), 12)) + 18) };
+    const iw = Math.max(60, W - m.l - m.r), ih = Math.max(60, H - m.t - m.b);
+    const y = d3.scaleLinear([0, d3.max(rows, r => Math.max(r.cp, r.lp)) || 1], [ih, 0]).nice();
+    const { topC, topL } = tierLeaders(rows), lead = new Set([topC, topL].filter(Boolean).map(r => r.key));
+    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('ส.ส.แบ่งเขตกับ ส.ส.บัญชีรายชื่อของแต่ละพรรค: ', 'Constituency and party-list seats by party: ') + rows.map(r => r.label + ' ' + r.cs + ' / ' + r.ls).join(', '));
     const g = svg.append('g').attr('transform', 'translate(' + m.l + ',' + m.t + ')');
-    // The close-race zone (under 5%) is shaded and the median marked, so the two numbers in the summary sit on the chart.
-    if (metric === 'pct') g.append('rect').attr('width', x(Math.min(5, top))).attr('height', ih).attr('fill', C().band);
-    g.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat(''));
-    g.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(5));
-    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(Math.max(3, Math.floor(iw / 60))).tickFormat(v => metric === 'votes' ? d3.format('~s')(v) : v + '%'));
-    g.append('text').attr('class', 'axis-title').attr('x', iw).attr('y', ih + 34).attr('text-anchor', 'end').text(metric === 'votes' ? t('ส่วนต่างคะแนน (คะแนน)', 'Victory margin (votes)') : t('ส่วนต่างคะแนน (% ของบัตรดีแบบแบ่งเขต)', 'Victory margin (% of valid constituency ballots)'));
-    g.append('text').attr('class', 'axis-title').attr('x', -m.l + 2).attr('y', -10).text(t('จำนวนเขต', 'Constituencies')).attr('font-size', 11);
-    const color = s.party && !s.brush ? E.D.colorOf(s.party) : C().accentBar;
-    const bars = g.append('g').selectAll('g').data(bins).join('g').attr('class', 'mark');
-    bars.append('rect').attr('x', b => x(b.x0) + 1).attr('width', b => Math.max(1, x(b.x1) - x(b.x0) - 2)).attr('y', b => y(b.length)).attr('height', b => ih - y(b.length)).attr('rx', 2).attr('fill', hl ? C().mutedBar : C().accentBar);
-    if (hl) bars.append('rect').attr('x', b => x(b.x0) + 1).attr('width', b => Math.max(1, x(b.x1) - x(b.x0) - 2)).attr('y', b => y(b.filter(hl).length)).attr('height', b => ih - y(b.filter(hl).length)).attr('rx', 2).attr('fill', color);
-    const med = d3.median(rows, val), mx = x(med);
-    g.append('line').attr('x1', mx).attr('x2', mx).attr('y1', 0).attr('y2', ih).attr('stroke', C().text2).attr('stroke-width', 1.3).attr('stroke-dasharray', '4 3').attr('pointer-events', 'none');
-    // Labels sit above the bars with a halo in the card colour, so they stay readable over a tall bar.
-    const note = (xp, anchor, text, bold) => g.append('text').attr('x', xp).attr('y', 12).attr('text-anchor', anchor).attr('font-size', 11).attr('font-weight', bold ? 600 : 400).attr('fill', C().text).attr('paint-order', 'stroke').attr('stroke', C().ring).attr('stroke-width', 3).attr('stroke-linejoin', 'round').attr('pointer-events', 'none').text(text);
-    note(mx > iw - 110 ? mx - 5 : mx + 5, mx > iw - 110 ? 'end' : 'start', t('มัธยฐาน ', 'median ') + (metric === 'votes' ? fmt(med) : fmtP(med, 1)));
-    if (metric === 'pct') note(3, 'start', t('สูสี < 5%', 'close < 5%'), true);
-    const cur = s.district && rows.find(r => r.id === s.district);
-    if (cur) {
-      const cx = x(val(cur));
-      g.append('line').attr('x1', cx).attr('x2', cx).attr('y1', 0).attr('y2', ih).attr('stroke', C().text).attr('stroke-width', 1.5);
-      g.append('path').attr('d', d3.symbol(d3.symbolTriangle, 70)()).attr('transform', 'translate(' + cx + ',' + (ih + 7) + ')').attr('fill', C().text);
-      g.append('text').attr('x', Math.min(iw - 4, cx + 5)).attr('y', 28).attr('font-size', 11).attr('text-anchor', cx > iw - 90 ? 'end' : 'start').attr('fill', C().text).text(shortName(cur));
-    }
-    const brush = d3.brushX().extent([[0, 0], [iw, ih]]);
-    const bg = g.append('g').attr('class', 'brush').call(brush);
-    if (s.brush && s.brush.source === 'margin' && s.brush.metric === metric) bg.call(brush.move, [x(s.brush.range[0]), x(Math.min(top, s.brush.range[1]))]);
-    brush.on('end', ev => {
-      if (!ev.sourceEvent) return;
-      if (!ev.selection) {
-        const [px] = d3.pointer(ev.sourceEvent, g.node()), v = x.invert(px), bin = bins.find(b => v >= b.x0 && v < b.x1);
-        if (bin && !(s.brush?.source === 'margin' && s.brush.range[0] === bin.x0 && s.brush.range[1] === bin.x1)) setMarginBrush(bin.x0, bin.x1);
-        else if (s.brush?.source === 'margin') E.setState({ brush: null });
-        return;
-      }
-      const [a, b] = ev.selection.map(x.invert), lo = Math.max(0, Math.floor(a / step) * step), hi = Math.min(top, Math.max(lo + step, Math.ceil(b / step) * step));
-      setMarginBrush(lo, hi);
+    g.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(Math.max(2, Math.floor(ih / 45))).tickSize(-iw).tickFormat(''));
+    [[0, 'start', t('ส.ส.แบ่งเขต', 'Constituency'), c.constituencySeats], [iw, 'end', t('ส.ส.บัญชีรายชื่อ', 'Party list'), c.listSeats]].forEach(([px, anchor, head, n]) => {
+      g.append('line').attr('x1', px).attr('x2', px).attr('y1', -4).attr('y2', ih).attr('stroke', C().text3).attr('stroke-width', 1.2);
+      g.append('text').attr('x', px).attr('y', -26).attr('text-anchor', anchor).attr('font-size', 12.5).attr('font-weight', 700).attr('fill', C().text).text(head);
+      g.append('text').attr('x', px).attr('y', -12).attr('text-anchor', anchor).attr('font-size', 11).attr('fill', C().text3).text(t('% ของ ' + n + ' ที่นั่ง', '% of ' + n + ' seats'));
     });
-    bg.on('pointermove.tip', ev => {
-      const [px] = d3.pointer(ev, g.node()), v = x.invert(px), bin = bins.find(b => v >= b.x0 && v < b.x1);
-      if (!bin) return E.hideChartTip();
-      const closest = bin.slice().sort((a, b) => val(a) - val(b)).slice(0, 3);
-      const unit = metric === 'votes' ? '' : '%';
-      E.chartTip(ev, '<b>' + fmt(bin.x0) + '–' + (metric === 'votes' ? fmt(bin.x1) : +bin.x1.toFixed(1)) + unit + '</b>' + tipRows([[t('จำนวนเขต', 'Constituencies'), bin.length]].concat(hl ? [[highlightLabel(), bin.filter(hl).length]] : [])) + (closest.length ? '<small>' + closest.map(r => esc(shortName(r)) + ' (' + (metric === 'votes' ? fmt(val(r)) : fmtP(val(r), 1)) + ')').join(', ') + '</small><br>' : '') + '<small>' + t('คลิกเพื่อเลือกช่วงนี้ · ลากเพื่อเลือกหลายช่วง', 'Click to select this bin · drag for a range') + '</small>');
-    }).on('pointerleave.tip', E.hideChartTip);
+    const dim = r => !!s.party && s.party !== r.key, heavy = r => s.party ? s.party === r.key : lead.has(r.key);
+    const order = rows.slice().sort((a, b) => (b.other ? 1 : 0) - (a.other ? 1 : 0) || (heavy(a) ? 1 : 0) - (heavy(b) ? 1 : 0) || a.total - b.total);
+    const grp = g.selectAll('g.tier').data(order).join('g').attr('class', r => 'tier mark' + (dim(r) ? ' dim' : '')).attr('data-key', r => r.key).style('cursor', r => r.other ? 'default' : 'pointer');
+    grp.filter(r => !r.other).attr('role', 'button').attr('aria-pressed', r => String(s.party === r.key)).attr('aria-label', r => r.label + ': ' + t('ส.ส.เขต ', 'constituency ') + r.cs + ', ' + t('บัญชีรายชื่อ ', 'party list ') + r.ls);
+    const across = sel => sel.attr('x1', 0).attr('y1', r => y(r.cp)).attr('x2', iw).attr('y2', r => y(r.lp));
+    across(grp.append('line')).attr('stroke', 'transparent').attr('stroke-width', 14);   // easier to point at
+    across(grp.append('line').attr('class', 'tier-line')).attr('stroke', r => r.color).attr('stroke-width', r => heavy(r) ? 4 : 2.2).attr('stroke-opacity', r => heavy(r) ? 1 : 0.7).attr('stroke-dasharray', r => r.other ? '5 4' : null).attr('stroke-linecap', 'round');
+    for (const [cx, v] of [[0, 'cp'], [iw, 'lp']]) grp.append('circle').attr('cx', cx).attr('cy', r => y(r[v])).attr('r', r => heavy(r) ? 5.5 : 4).attr('fill', r => r.color).attr('stroke', C().ring).attr('stroke-width', 1.5);
+    // End labels, nudged apart where shares are close; a short tick joins a moved label to its point.
+    const labels = g.append('g').attr('class', 'tier-labels');
+    for (const side of ['l', 'r']) {
+      const list = spread(rows.map(r => ({ r, y: y(side === 'l' ? r.cp : r.lp) })), 15, -6, ih + 6), ax = side === 'l' ? 0 : iw, dir = side === 'l' ? -1 : 1;
+      const lg = labels.selectAll('g.' + side).data(list).join('g').attr('class', d => side + ' mark' + (dim(d.r) ? ' dim' : ''));
+      lg.append('path').attr('d', d => 'M' + ax + ',' + d.y + 'L' + (ax + 6 * dir) + ',' + d.ly + 'L' + (ax + 8 * dir) + ',' + d.ly).attr('fill', 'none').attr('stroke', C().text4).attr('stroke-width', 1).attr('opacity', d => Math.abs(d.ly - d.y) > 1 ? 1 : 0);
+      lg.append('text').attr('x', ax + 10 * dir).attr('y', d => d.ly).attr('dy', '.35em').attr('text-anchor', side === 'l' ? 'end' : 'start').attr('font-size', 12)
+        .attr('font-weight', d => heavy(d.r) ? 700 : 500).attr('fill', d => d.r.other ? C().text3 : C().text).text(d => side === 'l' ? left(d.r) : right(d.r));
+    }
+    const tip = (ev, r) => E.chartTip(ev, '<b>' + esc(r.label) + '</b>' + tipRows([[t('ส.ส.แบ่งเขต', 'Constituency seats'), r.cs + ' (' + fmtP(r.cp, 1) + t(' ของ ', ' of ') + c.constituencySeats + ')'], [t('ส.ส.บัญชีรายชื่อ', 'Party-list seats'), r.ls + ' (' + fmtP(r.lp, 1) + t(' ของ ', ' of ') + c.listSeats + ')'], [t('รวม', 'Total'), r.total + t(' ที่นั่ง', ' seats') + (r.total ? ' · ' + t('มาจากเขต ', 'from constituencies ') + fmtP(r.cs / r.total * 100, 0) : '')]]) +
+      '<small>' + (r.other ? esc(r.parties.map(p => p.name + ' ' + p.totalSeats).join(', ')) : t('คลิกเพื่อไฮไลต์พรรคทุกกราฟ', 'Click to highlight this party everywhere')) + '</small>');
+    const pick = (ev, r) => { if (!r.other) E.setState({ party: s.party === r.key ? '' : r.key }); };
+    grp.on('pointermove', tip).on('pointerleave', E.hideChartTip).on('click', pick);
+    keyActivate(grp.filter(r => !r.other), pick);
   }
-  function tableMargin() {
-    const { bins, metric } = marginSetup(), hl = highlighter();
-    return '<table><thead><tr><th>' + t('ช่วงส่วนต่าง', 'Margin range') + '</th><th class="n">' + t('จำนวนเขต', 'Constituencies') + '</th>' + (hl ? '<th class="n">' + esc(highlightLabel()) + '</th>' : '') + '</tr></thead><tbody>' +
-      bins.map(b => '<tr><td>' + fmt(b.x0) + '–' + (metric === 'votes' ? fmt(b.x1) : +b.x1.toFixed(1)) + (metric === 'votes' ? '' : '%') + '</td><td class="n">' + b.length + '</td>' + (hl ? '<td class="n">' + b.filter(hl).length + '</td>' : '') + '</tr>').join('') + '</tbody></table>';
+  function tableTiers() {
+    const c = E.config();
+    return '<table><thead><tr><th>' + t('พรรค', 'Party') + '</th><th class="n">' + t('ส.ส.เขต', 'Constituency') + '</th><th class="n">' + t('% ของ ', '% of ') + c.constituencySeats + '</th><th class="n">' + t('บัญชีรายชื่อ', 'Party list') + '</th><th class="n">' + t('% ของ ', '% of ') + c.listSeats + '</th><th class="n">' + t('รวม', 'Total') + '</th></tr></thead><tbody>' +
+      D.seatParties.map(p => '<tr><td>' + E.dot(p.name) + esc(p.name) + '</td><td class="n">' + p.constituencySeats + '</td><td class="n">' + fmtP(p.constituencySeats / c.constituencySeats * 100, 1) + '</td><td class="n">' + p.listSeats + '</td><td class="n">' + fmtP(p.listSeats / c.listSeats * 100, 1) + '</td><td class="n"><b>' + p.totalSeats + '</b></td></tr>').join('') + '</tbody></table>';
   }
 
-  /* ---------- C: did the winners win a majority? ---------- */
-  // One dot per constituency at its winner's vote share, one row per winning party (parties with fewer than five
-  // seats share the last row). The dashed line is half the valid votes.
-  function majorityData() {
-    const rows = E.scopeRows().filter(r => finite(r.winnerShare) && r.winnerParty);
-    const main = d3.rollups(rows, v => v.length, r => r.winnerParty).sort((a, b) => b[1] - a[1]).filter(([, n]) => n >= 5).slice(0, 5).map(([p]) => p);
-    const groups = main.map(p => ({ key: p, label: p, rows: rows.filter(r => r.winnerParty === p) }));
-    const rest = rows.filter(r => !main.includes(r.winnerParty));
-    if (rest.length) groups.push({ key: '__other', label: t('พรรคอื่น', 'Other parties'), rows: rest });
-    return { rows, groups };
-  }
-  function majorityInsight() {
-    const { rows } = majorityData(); if (!rows.length) return '';
-    const under = rows.filter(r => r.winnerShare < 50).length, lost = d3.sum(rows, r => r.validVotes - r.winnerVotes), valid = d3.sum(rows, r => r.validVotes);
-    return '<b>' + under + t(' จาก ', ' of ') + rows.length + t(' เขต', '') + '</b>' + t(' ผู้ชนะได้คะแนนไม่ถึงครึ่งของบัตรดี', ' winners took less than half of the valid votes') + ' · ' + t('คะแนน ', '') + '<b>' + fmtP(lost / valid * 100, 1) + '</b>' + t(' ไปเป็นของผู้สมัครที่ไม่ได้รับเลือก', ' of all votes went to candidates who lost');
-  }
-  function setMajorityBrush(a, b) {
-    const ids = majorityData().rows.filter(r => r.winnerShare >= a && (r.winnerShare < b || b >= 100)).map(r => r.id);
-    E.setState({ brush: { source: 'majority', range: [a, b], ids, label: t('ผู้ชนะได้ ', 'Winner share ') + (+a.toFixed(1)) + '–' + (+b.toFixed(1)) + '%' } });
-  }
-  // A fixed pseudo-random number in [0, 1) per constituency, so a jittered dot stays put between redraws.
-  const hash01 = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 10007 / 10007; };
-  // Beeswarm placement: each dot (sorted by x) takes the free vertical offset nearest the row's centre line.
-  function dodge(points, r) {
-    const d2 = (2 * r) ** 2, ys = [];
-    let start = 0;
-    for (let i = 0; i < points.length; i++) {
-      const x0 = points[i].x;
-      while (points[start].x < x0 - 2 * r) start++;
-      const cands = [0];
-      for (let j = start; j < i; j++) { const dx = x0 - points[j].x, dy = Math.sqrt(Math.max(0, d2 - dx * dx)); cands.push(ys[j] + dy, ys[j] - dy); }
-      cands.sort((a, b) => Math.abs(a) - Math.abs(b));
-      let y = cands[0];
-      for (const c of cands) {
-        let free = true;
-        for (let j = start; j < i && free; j++) { const dx = x0 - points[j].x, dy = c - ys[j]; if (dx * dx + dy * dy < d2 - 0.01) free = false; }
-        if (free) { y = c; break; }
-      }
-      ys.push(y);
-    }
-    return ys;
-  }
-  function drawMajority(el) {
-    const s = S(), { rows, groups } = majorityData(), W = el.clientWidth, H = el.clientHeight;
-    if (!rows.length) return emptyState(el, t('ไม่มีเขตในตัวกรองนี้', 'No constituencies in this filter'));
-    const under = g => g.rows.filter(r => r.winnerShare < 50).length + '/' + g.rows.length;
-    const m = { t: 24, r: Math.max(...groups.map(g => textW(t('ไม่ถึงครึ่ง ', 'under half ') + under(g), 11))) + 12, b: 36, l: Math.min(130, Math.max(...groups.map(g => textW(g.label, 12))) + 14) };
-    const iw = Math.max(80, W - m.l - m.r), ih = Math.max(60, H - m.t - m.b);
-    const lo = Math.max(0, Math.floor(d3.min(rows, r => r.winnerShare) / 10) * 10), hi = Math.min(100, Math.ceil(d3.max(rows, r => r.winnerShare) / 10) * 10);
-    const x = d3.scaleLinear([lo, Math.max(hi, 60)], [0, iw]), hl = highlighter();
-    // A beeswarm (no overlaps) when the rows fit with readable dots; otherwise a jittered strip that always fits.
-    // Rows then share out any spare height.
-    let rad = 3.8, layout = [], swarm = false;
-    for (; rad >= 2.4; rad -= 0.2) {
-      layout = groups.map(g => { const p = g.rows.map(r => ({ r, x: x(r.winnerShare) })).sort((a, b) => a.x - b.x), ys = dodge(p, rad + 0.35); p.forEach((d, i) => { d.dy = ys[i]; }); return { g, p, ext: (d3.max(ys, v => Math.abs(v)) || 0) + rad + 2 }; });
-      if (d3.sum(layout, l => 2 * l.ext) <= ih) { swarm = true; break; }
-    }
-    if (!swarm) {
-      const rowH = ih / groups.length;
-      rad = Math.max(1.8, Math.min(3.2, rowH / 6));
-      layout = groups.map(g => ({ g, ext: rowH / 2, p: g.rows.map(r => ({ r, x: x(r.winnerShare), dy: (hash01(r.id) - 0.5) * Math.max(0, rowH - 2 * rad - 6) })) }));
-    }
-    const spare = Math.max(0, ih - d3.sum(layout, l => 2 * l.ext)) / layout.length;
-    let top = 0; layout.forEach(l => { l.h = 2 * l.ext + spare; l.cy = top + l.h / 2; top += l.h; });
-    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('สัดส่วนคะแนนของผู้ชนะ ', 'Winners\' vote shares in ') + rows.length + t(' เขต แยกตามพรรค', ' constituencies by party'));
-    const g = svg.append('g').attr('transform', 'translate(' + m.l + ',' + m.t + ')'), x50 = x(Math.max(lo, 50));
-    g.append('rect').attr('width', x50).attr('height', ih).attr('fill', C().band);
-    const ticks = Math.max(3, Math.floor(iw / 60));
-    g.append('g').attr('class', 'grid').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(ticks).tickSize(-ih).tickFormat(''));
-    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(ticks).tickFormat(v => v + '%'));
-    g.append('text').attr('class', 'axis-title').attr('x', iw).attr('y', ih + 30).attr('text-anchor', 'end').text(t('คะแนนของผู้ชนะ (% ของบัตรดีแบบแบ่งเขต)', 'Winner\'s vote (% of valid constituency ballots)'));
-    layout.slice(1).forEach(l => g.append('line').attr('x1', -m.l + 8).attr('x2', iw).attr('y1', l.cy - l.h / 2).attr('y2', l.cy - l.h / 2).attr('stroke', C().mutedBar).attr('stroke-width', 1));
-    g.append('line').attr('x1', x50).attr('x2', x50).attr('y1', -6).attr('y2', ih).attr('stroke', C().text).attr('stroke-width', 1.4).attr('stroke-dasharray', '4 3');
-    g.append('text').attr('x', x50 - 6).attr('y', -9).attr('text-anchor', 'end').attr('font-size', 11).attr('font-weight', 600).attr('fill', C().text2).text(t('← ไม่ถึงครึ่ง', '← under half'));
-    g.append('text').attr('x', x50 + 6).attr('y', -9).attr('font-size', 11).attr('font-weight', 600).attr('fill', C().text2).text(t('ได้เกินครึ่ง →', 'majority →'));
-    const rowLabel = g.append('g').attr('font-size', 12);
-    layout.forEach(l => {
-      rowLabel.append('text').attr('x', -8).attr('y', l.cy).attr('dy', '.35em').attr('text-anchor', 'end').attr('fill', C().text).attr('font-weight', s.party === l.g.key ? 700 : 500).text(l.g.label);
-      rowLabel.append('text').attr('x', iw + 8).attr('y', l.cy).attr('dy', '.35em').attr('font-size', 11).attr('fill', C().text3).text(t('ไม่ถึงครึ่ง ', 'under half ') + under(l.g));
-    });
-    const dots = layout.flatMap(l => l.p.map(d => Object.assign(d, { cy: l.cy + d.dy })));
-    const ordered = dots.slice().sort((a, b) => (hl ? hl(a.r) - hl(b.r) : 0));
-    g.append('g').selectAll('circle').data(ordered).join('circle').attr('class', d => 'mark' + (hl && !hl(d.r) ? ' dim' : '')).attr('cx', d => d.x).attr('cy', d => d.cy).attr('r', rad).attr('fill', d => E.D.colorOf(d.r.winnerParty)).attr('fill-opacity', swarm ? 1 : 0.82).attr('stroke', C().ring).attr('stroke-width', swarm ? 0.8 : 0.5);
-    const cur = s.district && dots.find(d => d.r.id === s.district);
-    if (cur) g.append('circle').attr('cx', cur.x).attr('cy', cur.cy).attr('r', rad + 4).attr('fill', 'none').attr('stroke', C().text).attr('stroke-width', 2.2).attr('pointer-events', 'none');
-    const ring = g.append('circle').attr('r', rad + 3).attr('fill', 'none').attr('stroke', C().text).attr('stroke-width', 1.5).attr('pointer-events', 'none').attr('opacity', 0);
-    const delaunay = d3.Delaunay.from(dots, d => d.x, d => d.cy);
-    const nearest = (px, py) => { const d = dots[delaunay.find(px, py)]; return d && Math.hypot(d.x - px, d.cy - py) <= Math.max(12, rad * 3) ? d : null; };
-    const brush = d3.brushX().extent([[0, 0], [iw, ih]]), bg = g.append('g').attr('class', 'brush').call(brush);
-    if (s.brush && s.brush.source === 'majority') bg.call(brush.move, [x(Math.max(lo, s.brush.range[0])), x(Math.min(x.domain()[1], s.brush.range[1]))]);
-    brush.on('end', ev => {
-      if (!ev.sourceEvent) return;
-      if (!ev.selection) {
-        const [px, py] = d3.pointer(ev.sourceEvent, g.node()), d = nearest(px, py);
-        if (d) { E.setState({ district: d.r.id }); A.showDetail(d.r.id); }
-        else if (s.brush?.source === 'majority') E.setState({ brush: null });
-        return;
-      }
-      const [a, b] = ev.selection.map(x.invert);
-      setMajorityBrush(Math.max(0, a), Math.min(100, b));
-    });
-    bg.on('pointermove.tip', ev => {
-      const [px, py] = d3.pointer(ev, g.node()), d = nearest(px, py);
-      if (!d) { ring.attr('opacity', 0); E.hideChartTip(); return; }
-      const r = d.r;
-      ring.attr('cx', d.x).attr('cy', d.cy).attr('opacity', 1);
-      E.chartTip(ev, '<b>' + esc(E.ptitle(E.D.provinceByCode.get(r.provinceCode))) + ' · ' + t('เขต ', 'No. ') + r.number + '</b>' + tipRows([[t('ผู้ชนะ', 'Winner'), esc(r.winnerName)], [t('พรรค', 'Party'), E.dot(r.winnerParty) + esc(r.winnerParty)], [t('คะแนนของผู้ชนะ', 'Winner\'s share'), fmtP(r.winnerShare, 1)], [t('อันดับสอง', 'Runner-up'), esc(r.runner?.party || '—') + (r.runner && r.validVotes ? ' ' + fmtP(r.runner.votes / r.validVotes * 100, 1) : '')], [t('ส่วนต่าง', 'Margin'), fmtP(r.marginPct, 1)]]) + '<small>' + t('คลิกเพื่อดูรายละเอียด', 'Click for details') + '</small>');
-    }).on('pointerleave.tip', () => { ring.attr('opacity', 0); E.hideChartTip(); });
-  }
-  function tableMajority() {
-    const hl = highlighter(), rows = majorityData().rows.filter(r => !hl || hl(r)).sort((a, b) => a.winnerShare - b.winnerShare);
-    return '<table><thead><tr><th>' + t('เขต', 'Constituency') + '</th><th>' + t('ผู้ชนะ', 'Winner') + '</th><th class="n">' + t('คะแนนของผู้ชนะ', 'Winner\'s share') + '</th><th class="n">' + t('ส่วนต่าง', 'Margin') + '</th></tr></thead><tbody>' +
-      rows.map(r => '<tr><td><button type="button" class="tbl-toggle" data-act="district" data-v="' + r.id + '">' + esc(E.dname(r)) + '</button></td><td>' + E.dot(r.winnerParty) + esc(r.winnerName) + '</td><td class="n">' + fmtP(r.winnerShare, 1) + '</td><td class="n">' + fmtP(r.marginPct, 1) + '</td></tr>').join('') + '</tbody></table>';
-  }
-
-  /* ---------- D: two-ballot dumbbell ---------- */
+  /* ---------- D: two ballots, diverging bars ---------- */
   function ballotData() {
     const s = S(), scope = E.scopeRows(), votes = s.ballotUnit === 'votes';
     if (s.ballotMode === 'party') {
@@ -478,32 +503,38 @@
   }
   function ballotFoot() {
     const s = S(), { missing, total, available } = ballotData();
-    const legend = '<span>● ' + t('บัตรผู้สมัคร', 'candidate ballot') + ' &nbsp;○ ' + t('บัตรพรรค', 'party-list ballot') + ' · ' + (s.ballotMode === 'party' ? t('คลิกพรรคเพื่อดูรายเขต · นับเฉพาะเขตที่พรรคส่งผู้สมัคร', 'click a party for its constituencies · only where it fielded a candidate') : t('รายเขต: ', 'by constituency: ') + (s.party ? esc(s.party) : t('พรรคของผู้ชนะแต่ละเขต', 'each winner\'s party')) + (s.brush ? t(' · เฉพาะเขตที่ลากเลือก', ' · brushed only') : '')) + scopeNote() + '</span>';
+    const legend = '<span>' + t('แท่งไปทางขวา: บัตรเลือกพรรคได้มากกว่า · ทางซ้าย: บัตรเลือกผู้สมัครได้มากกว่า', 'Bars right: the party-list ballot drew more · left: the candidate ballot drew more') + ' · ' + (s.ballotMode === 'party' ? t('คลิกพรรคเพื่อดูรายเขต · นับเฉพาะเขตที่พรรคส่งผู้สมัคร', 'click a party for its constituencies · only where it fielded a candidate') : t('รายเขต: ', 'by constituency: ') + (s.party ? esc(s.party) : t('พรรคของผู้ชนะแต่ละเขต', 'each winner\'s party')) + (s.brush ? t(' · เฉพาะเขตที่ลากเลือก', ' · brushed only') : '')) + scopeNote() + '</span>';
     if (s.ballotMode === 'party') return legend;
     return legend + '<span>' + t('แสดง ', 'Showing ') + Math.min(available, s.ballotTop === 'all' ? available : Number(s.ballotTop)) + '/' + available + t(' เขตที่เทียบได้', ' comparable') + (missing ? ' ' + t('ไม่มีผู้สมัครของพรรคหรือข้อมูลไม่ครบ ', 'no party candidate or incomplete data in ') + missing + '/' + total + t(' เขต (ไม่แทนด้วยศูนย์)', ' (not treated as zero)') : '') + '</span>';
   }
+  // Diverging bars from zero: right when the party-list ballot drew more than the party's candidates, left when the
+  // candidates drew more; the bar is the gap, in percentage points (or votes), in the party's colour.
   function drawBallots(el) {
     const s = S(), { rows } = ballotData(), W = el.clientWidth, votes = s.ballotUnit === 'votes';
     if (!rows.length) return emptyState(el, t('ไม่มีข้อมูลที่เทียบได้ในขอบเขตนี้', 'Nothing comparable in this scope'));
     // Rows keep a readable height; when the card is short the chart scrolls inside its own box.
-    const H = Math.max(el.clientHeight, rows.length * 26 + 50);
-    const gapWords = g => (g < 0 ? t('ผู้สมัคร +', 'candidate +') : t('พรรค +', 'party +')) + (votes ? fmt(Math.abs(g)) : Math.abs(g).toFixed(1) + t(' จุด', ' pts'));
-    const m = { t: 10, r: Math.min(150, d3.max(rows, d => textW(gapWords(d.gap), 11.5)) + 16), b: 32, l: Math.min(170, Math.max(...rows.map(d => textW(d.label, 12))) + 16) }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const x = d3.scaleLinear([0, d3.max(rows, d => Math.max(d.a, d.b)) || 1], [0, iw]).nice(), y = d3.scaleBand(rows.map(d => d.key), [0, ih]).padding(0.25);
-    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('ดัมเบลเปรียบเทียบคะแนนผู้สมัครกับบัญชีรายชื่อ', 'Dumbbell comparing candidate and party-list votes'));
+    const H = Math.max(el.clientHeight, rows.length * 26 + 70);
+    const amount = g => votes ? fmt(Math.abs(g)) : Math.abs(g).toFixed(1) + t(' จุด', ' pts');
+    const ext = d3.max(rows, d => Math.abs(d.gap)) || 1, room = d3.max(rows, d => textW(amount(d.gap), 11.5)) + 10;
+    const m = { t: 30, r: 10, b: 36, l: Math.min(170, Math.max(...rows.map(d => textW(d.label, 12))) + 16) }, iw = Math.max(80, W - m.l - m.r), ih = H - m.t - m.b;
+    const x = d3.scaleLinear([-ext, ext], [room, iw - room]), y = d3.scaleBand(rows.map(d => d.key), [0, ih]).padding(0.28), x0 = x(0);
+    const svg = svgFor(el, W, H).attr('role', 'img').attr('aria-label', t('ส่วนต่างระหว่างคะแนนบัญชีรายชื่อกับคะแนนผู้สมัคร แท่งไปทางขวาเมื่อคะแนนพรรคมากกว่า', 'Gap between party-list and candidate votes; bars go right where the party list drew more'));
     const g = svg.append('g').attr('transform', 'translate(' + m.l + ',' + m.t + ')');
-    g.append('g').attr('class', 'grid').call(d3.axisBottom(x).ticks(Math.max(2, Math.floor(iw / 80))).tickSize(ih).tickFormat(''));
-    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(Math.max(2, Math.floor(iw / 80))).tickFormat(v => votes ? d3.format('~s')(v) : v + '%'));
+    g.append('text').attr('x', x0 - 8).attr('y', -12).attr('text-anchor', 'end').attr('font-size', 11.5).attr('font-weight', 600).attr('fill', C().text2).text(t('← ผู้สมัครได้มากกว่าพรรค', '← candidates ahead'));
+    g.append('text').attr('x', x0 + 8).attr('y', -12).attr('font-size', 11.5).attr('font-weight', 600).attr('fill', C().text2).text(t('พรรคได้มากกว่าผู้สมัคร →', 'party list ahead →'));
+    const ticks = Math.max(2, Math.floor(iw / 90));
+    g.append('g').attr('class', 'grid').call(d3.axisBottom(x).ticks(ticks).tickSize(ih).tickFormat(''));
+    g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + ih + ')').call(d3.axisBottom(x).ticks(ticks).tickFormat(v => votes ? d3.format('~s')(Math.abs(v)) : String(Math.abs(v))));
+    g.append('text').attr('class', 'axis-title').attr('x', iw).attr('y', ih + 30).attr('text-anchor', 'end').text(votes ? t('ส่วนต่าง (คะแนน)', 'gap (votes)') : t('ส่วนต่าง (จุดเปอร์เซ็นต์)', 'gap (percentage points)'));
     const hl = s.ballotMode === 'district' ? highlighter() : null;
     const row = g.selectAll('g.row').data(rows).join('g').attr('class', d => 'row mark' + ((s.ballotMode === 'party' && s.party && s.party !== d.party) || (hl && d.r && !hl(d.r) && !s.brush) ? ' dim' : '')).attr('transform', d => 'translate(0,' + (y(d.key) + y.bandwidth() / 2) + ')').style('cursor', 'pointer').attr('role', 'button')
-      .attr('aria-label', d => d.label + ': ' + t('ผู้สมัคร ', 'candidate ') + (votes ? fmt(d.a) : fmtP(d.a)) + ', ' + t('บัญชีรายชื่อ ', 'list ') + (votes ? fmt(d.b) : fmtP(d.b)));
+      .attr('aria-label', d => d.label + ': ' + (d.gap >= 0 ? t('พรรคได้มากกว่า ', 'party list ahead by ') : t('ผู้สมัครได้มากกว่า ', 'candidates ahead by ')) + amount(d.gap));
     row.append('rect').attr('x', -m.l).attr('y', -y.step() / 2).attr('width', W).attr('height', y.step()).attr('fill', d => s.district && d.key === s.district ? C().band : 'transparent');
     row.append('text').attr('x', -8).attr('dy', '.35em').attr('text-anchor', 'end').attr('font-size', 12).attr('fill', C().text).attr('font-weight', d => d.key === s.district || d.party === s.party && s.ballotMode === 'party' ? 700 : 500).text(d => d.label);
-    row.append('line').attr('x1', d => x(Math.min(d.a, d.b))).attr('x2', d => x(Math.max(d.a, d.b))).attr('stroke', '#94a3b8').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
-    row.append('circle').attr('cx', d => x(d.a)).attr('r', 6).attr('fill', d => E.D.colorOf(d.party)).attr('stroke', C().ring).attr('stroke-width', 2);
-    row.append('circle').attr('cx', d => x(d.b)).attr('r', 5.5).attr('fill', C().ring).attr('stroke', d => E.D.colorOf(d.party)).attr('stroke-width', 2.5);
-    row.append('text').attr('x', d => x(Math.max(d.a, d.b)) + 10).attr('dy', '.35em').attr('font-size', 11.5).attr('font-weight', 600).attr('fill', C().text2).text(d => gapWords(d.gap));
-    row.on('pointermove', (ev, d) => E.chartTip(ev, '<b>' + esc(d.r ? E.dname(d.r) : d.label) + '</b>' + (d.r ? '<br><small>' + E.dot(d.party) + esc(d.party) + (s.party ? '' : t(' (พรรคผู้ชนะ)', ' (winner)')) + '</small>' : '') + tipRows([[t('● ผู้สมัคร', '● Candidate'), (votes ? fmt(d.a) : fmtP(d.a))], [t('○ บัญชีรายชื่อ', '○ Party-list'), (votes ? fmt(d.b) : fmtP(d.b))], [t('ส่วนต่าง', 'Gap'), votes ? fmtPP(d.gap, 0) : fmtPP(d.gap) + ' pp']].concat(d.d ? [[t('เขตที่ส่งผู้สมัคร', 'Constituencies contested'), d.d.n]] : [])) + '<small>' + (d.r ? t('คลิกเพื่อดูรายละเอียดเขต', 'Click for constituency details') : t('คลิกเพื่อดูรายเขตของพรรคนี้', 'Click to see this party by constituency')) + '</small>'))
+    row.append('rect').attr('class', 'gap-bar').attr('x', d => Math.min(x0, x(d.gap))).attr('y', -y.bandwidth() / 2).attr('width', d => Math.max(1.5, Math.abs(x(d.gap) - x0))).attr('height', y.bandwidth()).attr('rx', 3).attr('fill', d => E.D.colorOf(d.party));
+    row.append('text').attr('x', d => d.gap >= 0 ? x(d.gap) + 6 : x(d.gap) - 6).attr('dy', '.35em').attr('text-anchor', d => d.gap >= 0 ? 'start' : 'end').attr('font-size', 11.5).attr('font-weight', 600).attr('fill', C().text2).text(d => amount(d.gap));
+    g.append('line').attr('x1', x0).attr('x2', x0).attr('y1', -4).attr('y2', ih).attr('stroke', C().text).attr('stroke-width', 1.2);
+    row.on('pointermove', (ev, d) => E.chartTip(ev, '<b>' + esc(d.r ? E.dname(d.r) : d.label) + '</b>' + (d.r ? '<br><small>' + E.dot(d.party) + esc(d.party) + (s.party ? '' : t(' (พรรคผู้ชนะ)', ' (winner)')) + '</small>' : '') + tipRows([[t('บัตรเลือกผู้สมัคร', 'Candidate ballot'), (votes ? fmt(d.a) : fmtP(d.a))], [t('บัตรเลือกพรรค', 'Party-list ballot'), (votes ? fmt(d.b) : fmtP(d.b))], [t('ส่วนต่าง (พรรค − ผู้สมัคร)', 'Gap (list − candidate)'), votes ? fmtPP(d.gap, 0) : fmtPP(d.gap) + ' pp']].concat(d.d ? [[t('เขตที่ส่งผู้สมัคร', 'Constituencies contested'), d.d.n]] : [])) + '<small>' + (d.r ? t('คลิกเพื่อดูรายละเอียดเขต', 'Click for constituency details') : t('คลิกเพื่อดูรายเขตของพรรคนี้', 'Click to see this party by constituency')) + '</small>'))
       .on('pointerleave', E.hideChartTip)
       .on('click', (ev, d) => { E.hideChartTip(); if (d.r) { E.setState({ district: d.r.id }); A.showDetail(d.r.id); } else E.setState({ party: d.party, ballotMode: 'district', ballotSort: 'abs' }); });
     keyActivate(row, (ev, d) => { if (d.r) { E.setState({ district: d.r.id }); A.showDetail(d.r.id); } else E.setState({ party: d.party, ballotMode: 'district', ballotSort: 'abs' }); });
@@ -749,16 +780,14 @@
 
   A.onAction = (act, v, el) => {
     const s = S();
-    if (act === 'an-set') { const k = el.dataset.k; let val = v; if (k === 'seatTop' || k === 'ballotTop') val = String(v); const patch = { [k]: val }; if (k === 'ballotMode') patch.ballotSort = v === 'party' ? 'seats' : 'abs'; if (k === 'marginMetric' && s.brush?.source === 'margin') patch.brush = null; E.setState(patch); }
+    if (act === 'an-set') { const k = el.dataset.k; let val = v; if (k === 'ballotTop') val = String(v); const patch = { [k]: val }; if (k === 'ballotMode') patch.ballotSort = v === 'party' ? 'seats' : 'abs'; E.setState(patch); }
     else if (act === 'an-table') { tableOn.has(v) ? tableOn.delete(v) : tableOn.add(v); A.render(); }
-    else if (act === 'brush-preset') { const [a, b] = v.split(',').map(Number); if (s.marginMetric !== 'pct') S().marginMetric = 'pct'; setMarginBrush(a, b); }
     else if (act === 'brush-list') { if (matchMedia('(min-width: 1280px)').matches) E.setState({ anDetail: { kind: 'brush' } }); else E.openSheet({ kind: 'custom', what: 'brush' }); }
     else if (act === 'an-detail-close') E.setState({ anDetail: null });
     else if (act === 'an-region') E.setState({ region: s.region === v ? '' : v, brush: null });
     else if (act === 'an-cell') E.setState({ region: v, party: el.dataset.p, brush: null });
     else if (act === 'compare-add') { if (!s.compare.includes(v) && s.compare.length < CMP_MAX) E.setState({ compare: [...s.compare, v] }); }
     else if (act === 'compare-remove') E.setState({ compare: s.compare.filter(id => id !== v) });
-    else if (act === 'majority-preset') { const [a, b] = v.split(',').map(Number); setMajorityBrush(a, b); }
   };
   A.onChange = (id, v, ev) => {
     const k = ev.target.dataset.k;

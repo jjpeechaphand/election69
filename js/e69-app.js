@@ -23,9 +23,9 @@
 
   const defaults = () => ({
     page: 'overview', region: '', party: '', province: '', district: '', candidate: '',
-    mapMode: 'winner', ballot: 'partyList',
+    mapMode: 'winner',
     analysisTab: 'core', mobileChart: 'seats',
-    seatTier: 'const', seatSort: 'seats', seatTop: '10', marginMetric: 'pct', brush: null,
+    seatTier: 'const', brush: null,
     ballotMode: 'party', ballotUnit: 'share', ballotSort: 'seats', ballotTop: '15',
     heatMetric: 'list', heatSort: 'region', densityView: 'groups', densityParty: '', densityBallot: 'partyList', densityScale: 'log',
     compare: [], detail: null,
@@ -145,6 +145,30 @@
   function partial(agg) { return agg && !agg.complete ? ' <em class="partial">' + t('ข้อมูลไม่ครบ ', 'partial: ') + agg.n + '/' + agg.of + t(' เขต', '') + '</em>' : ''; }
   function value(agg, unit) { return agg && agg.value !== null ? fmt(agg.value) + (unit ? ' <small>' + unit + '</small>' : '') + partial(agg) : '<span class="na">' + t('ไม่มีข้อมูล', 'Not available') + '</span>'; }
 
+  // Candidate portraits: official ECT photos cut out in the party-leader frame (scripts/prepare_mp_portraits.py).
+  // election.csv names the file pattern; ids it lists as missing, and files that fail to load, get a neutral silhouette
+  // in the party's tint instead. Purely illustrative: the name is always next to the photo, so the image has empty alt.
+  const failedPhotos = new Set();
+  // A person's name wraps between its words, never inside one unless a word alone is wider than the line (Thai line
+  // breaking would otherwise split an unfamiliar surname, e.g. "ตันจรา / รักษ์").
+  const nm = s => String(s ?? '').split(/\s+/).filter(Boolean).map(w => '<span class="nm-w">' + esc(w) + '</span>').join(' ');
+  function photoSrc(c) {
+    const cfg = CFG(), id = c && c.officialCandidateId;
+    if (!cfg.candidatePhotos || !id || cfg.candidatePhotosMissing.includes(id)) return '';
+    const src = cfg.candidatePhotos.replace('{id}', id);
+    return failedPhotos.has(src) ? '' : src;
+  }
+  function face(c, party, size) {   // size: xs (search), sm (list rows), md (runner-up)
+    const src = photoSrc(c);
+    return '<span class="face face-' + size + (src ? '' : ' no-photo') + '"' + (party ? ' style="--c:' + esc(D.colorOf(party)) + '"' : '') + ' aria-hidden="true">' +
+      (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : '') + '</span>';
+  }
+  document.addEventListener('error', ev => {
+    const img = ev.target, box = img.parentElement;
+    if (img.tagName !== 'IMG' || !box || !box.matches('.face, .wc-photo')) return;
+    failedPhotos.add(img.getAttribute('src')); box.classList.add('no-photo'); img.remove();
+  }, true);
+
   function provinceDetail(p, mode) {
     const interactive = mode !== 'tip';
     const sel = state.party, maxSeat = Math.max(1, ...p.seats.map(s => s.count));
@@ -153,9 +177,9 @@
     const turnout = p.turnoutRate;
     const seatsHtml = seatRows.map(s => '<li class="' + (s.party === sel ? 'is-sel' : '') + (s.zero ? ' is-zero' : '') + '">' + dot(s.party) + '<span class="pn">' + esc(s.party) + '</span><span class="bar" aria-hidden="true"><i style="width:' + (100 * s.count / maxSeat) + '%;--c:' + esc(s.color) + '"></i></span><b>' + s.count + ' ' + t('เขต', s.count === 1 ? 'seat' : 'seats') + '</b></li>').join('');
     const winners = !interactive ? '' : p.winners.map(w => {
-      const inner = '<span class="no">' + t('เขต ', 'No. ') + w.number + '</span>' +
+      const inner = '<span class="no">' + t('เขต ', 'No. ') + w.number + '</span>' + face(w.resolved ? D.byId.get(w.id).winner : null, w.party, 'sm') +
         (w.resolved
-          ? '<span class="who"><b>' + esc(w.name) + '</b><small>' + dot(w.party) + esc(w.party) + '</small></span><span class="num">' + fmt(w.votes) + '<small>' + t('ห่าง ', 'lead ') + fmt(w.marginVotes) + ' (' + fmtP(w.marginPct, 1) + ')</small></span>'
+          ? '<span class="who"><b>' + nm(w.name) + '</b><small>' + dot(w.party) + esc(w.party) + '</small></span><span class="num">' + fmt(w.votes) + '<small>' + t('ห่าง ', 'lead ') + fmt(w.marginVotes) + ' (' + fmtP(w.marginPct, 1) + ')</small></span>'
           : '<span class="who"><b class="na">' + (w.tied ? t('คะแนนเท่ากัน ยังไม่ระบุผู้ชนะ', 'Tied – no winner assigned') : t('ยังระบุผู้ชนะไม่ได้', 'Winner unavailable')) + '</b></span><span class="num">—</span>');
       const cls = (w.party === sel ? 'is-sel ' : '') + (state.district === w.id ? 'is-cur' : '');
       return interactive ? '<li class="' + cls + '"><button type="button" data-act="district" data-v="' + w.id + '">' + inner + '</button></li>' : '<li class="' + cls + '">' + inner + '</li>';
@@ -191,7 +215,7 @@
   function districtDetail(r, mode) {
     const p = provinceOf(r.provinceCode), party = state.party || r.winnerParty, c = party ? D.comparison(r, party) : null;
     const top = r.candidates[0]?.votes || 1;
-    const cands = r.candidates.map((x, i) => '<li class="' + (x.officialCandidateId && x.officialCandidateId === state.candidate ? 'is-cur ' : '') + (x.party === state.party ? 'is-sel' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="who"><b>' + esc(x.name) + '</b><small>' + dot(x.party) + esc(x.party) + ' · ' + t('หมายเลข ', 'No. ') + x.number + '</small></span><span class="bar" aria-hidden="true"><i style="width:' + (100 * (x.votes || 0) / top) + '%;--c:' + esc(D.colorOf(x.party)) + '"></i></span><span class="num">' + fmt(x.votes) + '<small>' + fmtP(D.rows.length && r.validVotes ? x.votes / r.validVotes * 100 : null) + '</small></span></li>').join('');
+    const cands = r.candidates.map((x, i) => '<li class="' + (x.officialCandidateId && x.officialCandidateId === state.candidate ? 'is-cur ' : '') + (x.party === state.party ? 'is-sel' : '') + '"><span class="rk">' + (i + 1) + '</span>' + face(x, x.party, 'sm') + '<span class="who"><b>' + nm(x.name) + '</b><small>' + dot(x.party) + esc(x.party) + ' · ' + t('หมายเลข ', 'No. ') + x.number + '</small></span><span class="bar" aria-hidden="true"><i style="width:' + (100 * (x.votes || 0) / top) + '%;--c:' + esc(D.colorOf(x.party)) + '"></i></span><span class="num">' + fmt(x.votes) + '<small>' + fmtP(D.rows.length && r.validVotes ? x.votes / r.validVotes * 100 : null) + '</small></span></li>').join('');
     let ballots = '';
     if (c) {
       ballots = c.candidatePresent && c.candidateShare !== null && c.listShare !== null
@@ -203,11 +227,14 @@
     const inCmp = state.compare.includes(r.id), cmpFull = !inCmp && state.compare.length >= 3;   // the comparison holds 3 (CMP_MAX in e69-analysis.js)
     const actions = mode !== 'tip' ? '<div class="dd-actions">' + (state.page === 'analysis' ? '<button type="button" class="ghost-btn" data-act="compare-add" data-v="' + r.id + '"' + (inCmp || cmpFull ? ' disabled' : '') + '>' + (inCmp ? t('อยู่ในรายการเปรียบเทียบแล้ว', 'Already in comparison') : cmpFull ? t('เปรียบเทียบครบ 3 เขตแล้ว', 'Comparison full (3)') : t('+ เพิ่มในการเปรียบเทียบ', '+ Add to comparison')) + '</button><button type="button" class="ghost-btn" data-act="goto-map" data-v="' + r.id + '">' + t('ดูบนแผนที่ภาพรวม', 'Show on overview map') + '</button>' : '<button type="button" class="ghost-btn" data-act="province" data-v="' + r.provinceCode + '">' + t('← ทุกเขตใน', '← All constituencies in ') + esc(pname(p)) + '</button>') + '</div>' : '';
     return '<div class="dd dd-' + mode + '"><header class="pd-head"><p class="pd-meta"><span>' + esc(ptitle(p)) + '</span></p><h3 class="pd-title">' + t('เขตเลือกตั้งที่ ', 'Constituency ') + r.number + '</h3>' + (r.zone?.length ? '<p class="zone">' + esc(r.zone.join(' · ')) + '</p>' : '') + '</header>' +
-      (r.winnerParty ? '<div class="winner-card" style="--c:' + esc(D.colorOf(r.winnerParty)) + '"><small>' + t('ผู้ชนะ', 'Winner') + '</small><b>' + esc(r.winnerName) + '</b><span>' + dot(r.winnerParty) + esc(r.winnerParty) + '</span><strong>' + fmt(r.winnerVotes) + ' <small>' + t('คะแนน', 'votes') + ' · ' + fmtP(r.winnerShare) + '</small></strong></div>' : '<p class="na-box">' + (r.tied ? t('คะแนนอันดับหนึ่งเท่ากัน ยังไม่ระบุผู้ชนะ', 'First place is tied; no winner is assigned') : t('ยังระบุผู้ชนะไม่ได้', 'Winner unavailable')) + '</p>') +
-      '<dl class="pd-stats">' +
-      '<div><dt>' + t('อันดับสอง', 'Runner-up') + '</dt><dd>' + (r.runner ? esc(r.runner.name) + '<small><span class="nw">' + dot(r.runner.party) + esc(r.runner.party) + '</span> · ' + fmt(r.runner.votes) + '</small>' : '—') + '</dd></div>' +
-      '<div class="hl"><dt>' + t('ส่วนต่างคะแนน', 'Victory margin') + '</dt><dd>' + fmt(r.marginVotes) + ' <small>' + t('คะแนน', 'votes') + ' · ' + fmtP(r.marginPct) + '</small></dd></div>' +
-      '<div><dt>' + t('อัตราการใช้สิทธิ', 'Turnout rate') + '</dt><dd>' + fmtP(r.turnoutPct) + ' <small>' + fmt(r.turnout) + ' / ' + fmt(r.eligible) + '</small></dd></div>' +
+      // Winner (large portrait) above the runner-up (smaller), with the gap between them; the size order is the result.
+      (r.winnerParty ? '<div class="winner-card' + (photoSrc(r.winner) ? ' has-photo' : '') + '" style="--c:' + esc(D.colorOf(r.winnerParty)) + '"><small>' + t('ผู้ชนะ', 'Winner') + '</small><b>' + nm(r.winnerName) + '</b><span>' + dot(r.winnerParty) + esc(r.winnerParty) + ' · ' + t('หมายเลข ', 'No. ') + r.winner.number + '</span><strong>' + fmt(r.winnerVotes) + ' <small>' + t('คะแนน', 'votes') + ' · ' + fmtP(r.winnerShare) + '</small></strong>' +
+        (photoSrc(r.winner) ? '<span class="wc-photo" aria-hidden="true"><img src="' + esc(photoSrc(r.winner)) + '" alt="" decoding="async"></span>' : '') + '</div>' +
+        (r.runner ? '<div class="runner-up">' + face(r.runner, r.runner.party, 'md') + '<span class="who"><small>' + t('อันดับสอง', 'Runner-up') + '</small><b>' + nm(r.runner.name) + '</b><small><span class="nw">' + dot(r.runner.party) + esc(r.runner.party) + '</span> · ' + fmt(r.runner.votes) + t(' คะแนน', ' votes') + '</small></span>' +
+          '<span class="gap"><small>' + t('ส่วนต่างคะแนน', 'Victory margin') + '</small><b>' + fmt(r.marginVotes) + '</b><small>' + t('คะแนน · ', 'votes · ') + fmtP(r.marginPct) + '</small></span></div>' : '')
+        : '<p class="na-box">' + (r.tied ? t('คะแนนอันดับหนึ่งเท่ากัน ยังไม่ระบุผู้ชนะ', 'First place is tied; no winner is assigned') : t('ยังระบุผู้ชนะไม่ได้', 'Winner unavailable')) + '</p>') +
+      '<dl class="pd-stats dd-stats">' +
+      '<div class="hl"><dt>' + t('อัตราการใช้สิทธิ', 'Turnout rate') + '</dt><dd>' + fmtP(r.turnoutPct) + ' <small class="of">' + fmt(r.turnout) + ' / ' + fmt(r.eligible) + '</small></dd></div>' +
       '<div><dt>' + t('บัตรเสีย (แบบแบ่งเขต)', 'Invalid (constituency)') + '</dt><dd>' + fmt(r.invalid) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
       '<div><dt>' + t('ไม่เลือกผู้ใด (แบบแบ่งเขต)', 'No vote (constituency)') + '</dt><dd>' + fmt(r.noVote) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
       '<div><dt>' + t('บัตรดี (แบบแบ่งเขต)', 'Valid (constituency)') + '</dt><dd>' + fmt(r.validVotes) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
@@ -381,14 +408,20 @@
     vb = { x: Math.min(...xs) - R * SQ3 / 2 - pad, y: Math.min(...ys) - R - pad };
     vb.w = Math.max(...xs) + R * SQ3 / 2 + pad - vb.x; vb.h = Math.max(...ys) + R + pad - vb.y;
     const svg = d3.select('#hexmap').attr('viewBox', [vb.x, vb.y, vb.w, vb.h].join(' ')).attr('preserveAspectRatio', 'xMidYMid meet');
-    svg.append('defs');
+    const defs = svg.append('defs');
+    addSheenDefs(defs, 'hex').selectAll('polygon').data(tiles).join('polygon').attr('points', d => hexPoints(d.cx, d.cy));
     const g = svg.append('g').attr('class', 'hex-layer');
+    // Tiles stand a little off the sea: two offset copies of every tile underneath read as a soft shadow.
+    const shade = g.append('g').attr('class', 'hex-shade').attr('aria-hidden', 'true');
+    for (const [dy, cls] of [[3.4, 'far'], [1.6, 'near']]) shade.append('g').attr('class', cls).selectAll('polygon').data(tiles, d => d.code).join('polygon').attr('points', d => hexPoints(d.cx, d.cy + dy));
     const cells = g.selectAll('g.hex').data(tiles, d => d.code).join('g').attr('class', 'hex').attr('data-code', d => d.code).attr('role', 'button').attr('tabindex', -1);
     cells.append('polygon').attr('points', d => hexPoints(d.cx, d.cy));
     cells.append('text').attr('class', 'hex-label').attr('x', d => d.cx).attr('y', d => d.cy);
     // Outline overlays instead of re-ordering tiles: moving a focused element in the DOM would drop keyboard focus.
+    // For the same reason the tile under the pointer is lifted as a copy drawn above its neighbours (see liftTile).
     g.append('polygon').attr('class', 'ring sel-ring').attr('display', 'none');
-    g.append('polygon').attr('class', 'ring hover-ring').attr('display', 'none');
+    g.append('g').attr('class', 'hex-lift').attr('aria-hidden', 'true');
+    addSheen(g, 'hex', vb.x, vb.y, vb.w, vb.h);
     zoomBehavior = d3.zoom().scaleExtent([1, 6]).translateExtent([[vb.x - 40, vb.y - 40], [vb.x + vb.w + 40, vb.y + vb.h + 40]])
       .filter(ev => ev.type === 'wheel' ? !ev.button : ev.type.startsWith('touch') ? (ev.touches.length > 1 || camera.k > 1.01) : !ev.button && !ev.ctrlKey)
       .on('zoom', ev => { camera = ev.transform; g.attr('transform', camera); svg.style('touch-action', camera.k > 1.01 ? 'none' : 'pan-y pinch-zoom'); scheduleLabels(); positionPill(); if (tipCode) hideTip(true); });
@@ -404,6 +437,31 @@
     el.addEventListener('focusout', ev => { if (!el.contains(ev.relatedTarget)) { setHover(''); hidePill(); scheduleHide(); } });
     el.addEventListener('keydown', onMapKey);
     if ('ResizeObserver' in window) new ResizeObserver(() => scheduleLabels()).observe($('mapStage'));
+  }
+
+  /* Light on the maps. Now and then a soft band of light sweeps across the tiles (or a province's constituencies),
+     clipped to their shapes so the sea stays calm; e69.css times it (first pass about a second after the map
+     appears, then every 15 s) and switches it off for reduced motion. The clip path holds copies of the shapes. */
+  // Each map keeps its own ids (key 'hex' or 'dist'): a gradient inside a hidden map may not be usable by the other.
+  function addSheenDefs(defs, key) {
+    const grad = defs.append('linearGradient').attr('id', key + 'Sheen').attr('x1', 0).attr('y1', 0).attr('x2', 1).attr('y2', 0.45);
+    [[0, 0], [0.38, 0], [0.5, 1], [0.62, 0], [1, 0]].forEach(([o, a]) => grad.append('stop').attr('offset', o).attr('stop-color', '#fff').attr('stop-opacity', a));
+    return defs.append('clipPath').attr('id', key + 'Clip');
+  }
+  function addSheen(layer, key, x, y, w, h) {
+    // The band rides inside a clipped group: the group's clip stays put while the band moves across it.
+    layer.append('g').attr('class', 'map-sheen-clip').attr('clip-path', 'url(#' + key + 'Clip)').attr('aria-hidden', 'true')
+      .append('rect').attr('class', 'map-sheen').attr('x', x - w).attr('y', y).attr('width', w).attr('height', h).attr('fill', 'url(#' + key + 'Sheen)').style('--sweep', (2 * w).toFixed(1) + 'px');
+  }
+  // The first time the national map is shown, it lights up province by province from Bangkok outward (≈1.2 s).
+  let litOnce = false;
+  function lightUpMap() {
+    litOnce = true;
+    if (calmMotion()) return;
+    const el = $('hexmap'), origin = tiles.find(x => x.code === '10') || tiles[0], far = d3.max(tiles, d => Math.hypot(d.cx - origin.cx, d.cy - origin.cy)) || 1;
+    d3.select(el).selectAll('g.hex').style('--d', d => Math.round(40 + 720 * Math.hypot(d.cx - origin.cx, d.cy - origin.cy) / far) + 'ms');
+    el.classList.add('map-lit');
+    setTimeout(() => el.classList.remove('map-lit'), 1800);
   }
 
   function luminance(hex) {
@@ -493,17 +551,41 @@
       const interp = rateRamp(mode), color = v => interp(0.12 + 0.83 * (v - lo) / Math.max(1e-9, hi - lo));
       for (const p of D.provinces) { const v = get(p); const fill = Number.isFinite(v) ? color(v) : colors().empty; out.set(p.code, { fill, ink: luminance(d3.color(fill).formatHex()) > 0.33 ? '#102631' : '#fff', text: fmtP(v) }); }
       legend = '<div class="lg-ramp"><span>' + lo + '%</span><i style="background:linear-gradient(90deg,' + color(lo) + ',' + color((lo + hi) / 2) + ',' + color(hi) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + (mode === 'turnout' ? t('อัตราการใช้สิทธิระดับจังหวัด = Σผู้มาใช้สิทธิ ÷ Σผู้มีสิทธิ (ช่วงสีตามค่าต่ำสุด–สูงสุดจริง)', 'Province turnout = Σ voters ÷ Σ eligible (colour range spans the actual min–max)') : t('บัตรเสียแบบแบ่งเขต ÷ ผู้มาใช้สิทธิ (ช่วงสีตามค่าต่ำสุด–สูงสุดจริง)', 'Invalid constituency ballots ÷ turnout (range spans actual min–max)')) + '</p>';
-    } else if (mode === 'support') {
+    } else if (mode === 'list' || mode === 'cand') {
+      const ballot = mapBallot(), what = ballotWord();
       if (!state.party) {
-        for (const p of D.provinces) out.set(p.code, { fill: colors().unset, ink: colors().emptyInk, text: '' });
-        legend = '<p class="lg-cap lg-need">' + t('เลือกพรรคจากการ์ดพรรคหรือแถบด้านข้าง เพื่อแสดงสัดส่วนคะแนนรายจังหวัด', 'Choose a party (cards or sidebar) to show its vote share by province') + '</p>';
+        // No party chosen: each province takes the colour of the party with the most votes on this ballot, so the
+        // map reads beside the seat map (on the party ballot most provinces change colour).
+        const used = new Map();
+        let differ = 0;
+        for (const p of D.provinces) {
+          const top = topParty(p, ballot);
+          if (!top) { out.set(p.code, { fill: colors().empty, ink: colors().emptyInk, text: '' }); continue; }
+          used.set(top.party, (used.get(top.party) || 0) + 1);
+          if (!p.leaders.includes(top.party)) differ++;
+          const c = D.colorOf(top.party);
+          out.set(p.code, { fill: c, ink: luminance(c) > 0.33 ? '#102631' : '#fff', text: what + ' ' + top.party + ' ' + fmtP(top.share) });
+        }
+        legend = '<div class="lg-items">' + [...used].sort((a, b) => b[1] - a[1]).map(([x, n]) => '<button type="button" class="lg-item" data-act="party" data-v="' + esc(x) + '">' + dot(x) + esc(x) + ' <small>' + n + '</small></button>').join('') + '</div>' +
+          '<p class="lg-cap">' + t('สีคือพรรคที่ได้' + what + (ballot === 'partyList' ? ' (บัญชีรายชื่อ) ' : ' (แบบแบ่งเขต รวมทุกเขต) ') + 'มากที่สุดในจังหวัด ตัวเลขคือจำนวนจังหวัด', 'Colour is the party with the most ' + what + ' in the province. Numbers count provinces.') + '</p>' +
+          '<p class="lg-cap lg-diff">' + (differ ? t('ใน <b>' + differ + '</b> จังหวัด สีนี้ต่างจากพรรคที่ชนะเขตมากที่สุด', 'In <b>' + differ + '</b> provinces this is not the party that won the most seats') : t('ทุกจังหวัด สีนี้ตรงกับพรรคที่ชนะเขตมากที่สุด', 'In every province this is also the party that won the most seats')) + '</p>';
       } else {
-        const c = D.colorOf(state.party), vals = D.provinces.map(p => D.share(p, state.party, state.ballot).value), hi = Math.max(1, Math.ceil(d3.max(vals.filter(Number.isFinite)))), ramp = partyRamp(colors().shareBase, c);
-        D.provinces.forEach((p, i) => { const v = vals[i]; const fill = Number.isFinite(v) ? ramp(0.08 + 0.92 * v / hi) : colors().empty; out.set(p.code, { fill, ink: luminance(d3.color(fill).formatHex()) > 0.33 ? '#102631' : '#fff', text: fmtP(v) }); });
-        legend = '<div class="lg-ramp"><span>0%</span><i style="background:linear-gradient(90deg,' + rampStops(ramp, 0.08, 0, c) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + esc(state.party) + ' · ' + (state.ballot === 'partyList' ? t('คะแนนบัญชีรายชื่อ ÷ บัตรดีบัญชีรายชื่อ', 'party-list votes ÷ valid party-list ballots') : t('คะแนนผู้สมัคร ÷ บัตรดีแบบแบ่งเขต (เขตที่ไม่ส่งผู้สมัครนับ 0 คะแนน)', 'candidate votes ÷ valid constituency ballots (no candidate = 0 votes)')) + t(' รวมระดับจังหวัด', ', aggregated by province') + '</p>';
+        const c = D.colorOf(state.party), vals = D.provinces.map(p => D.share(p, state.party, ballot).value), hi = Math.max(1, Math.ceil(d3.max(vals.filter(Number.isFinite)))), ramp = partyRamp(colors().shareBase, c);
+        D.provinces.forEach((p, i) => { const v = vals[i]; const fill = Number.isFinite(v) ? ramp(0.08 + 0.92 * v / hi) : colors().empty; out.set(p.code, { fill, ink: luminance(d3.color(fill).formatHex()) > 0.33 ? '#102631' : '#fff', text: what + ' ' + fmtP(v) }); });
+        legend = '<div class="lg-ramp"><span>0%</span><i style="background:linear-gradient(90deg,' + rampStops(ramp, 0.08, 0, c) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + esc(state.party) + ' · ' + (ballot === 'partyList' ? t('คะแนนเลือกพรรค ÷ บัตรดีบัญชีรายชื่อ', 'party-list votes ÷ valid party-list ballots') : t('คะแนนผู้สมัครของพรรค ÷ บัตรดีแบบแบ่งเขต (เขตที่ไม่ส่งผู้สมัครนับ 0 คะแนน)', 'candidate votes ÷ valid constituency ballots (no candidate = 0 votes)')) + t(' รวมระดับจังหวัด', ', aggregated by province') + '</p>';
       }
     }
     return { out, legend };
+  }
+  // The two ballots as map colourings: 'list' = the party ballot (party-list), 'cand' = the candidate ballot (constituency).
+  const mapBallot = () => state.mapMode === 'cand' ? 'constituency' : 'partyList';
+  const ballotWord = () => state.mapMode === 'cand' ? t('คะแนนเลือกผู้สมัคร', 'candidate votes') : t('คะแนนเลือกพรรค', 'party-list votes');
+  // The party with the most votes on one ballot in a province summary: { party, share (% of that ballot's valid votes) }.
+  function topParty(p, ballot) {
+    const votes = ballot === 'partyList' ? p.listVotes : p.candVotes, den = ballot === 'partyList' ? p.listValid.value : p.valid.value;
+    let best = null;
+    for (const [party, v] of votes) if (!best || v > best.v || (v === best.v && party.localeCompare(best.party, 'th') < 0)) best = { party, v };
+    return best && den ? { party: best.party, share: best.v / den * 100 } : null;
   }
 
   const RESET_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
@@ -516,12 +598,15 @@
     if (headingKey && headingKey.split('|')[0] !== key.split('|')[0]) replay($('mapHeading'), p ? 'head-in' : 'head-back', 450);
     headingKey = key;
     renderMapCredit(p);
-    const opt = (v, label, cur) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + label + '</option>';
+    const opt = (v, label, cur, title) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + (title ? ' title="' + title + '"' : '') + '>' + label + '</option>';
+    // The two ballots are colourings of their own (they were a sub-choice of "vote share of the selected party"):
+    // "คะแนนเลือกพรรค" / "คะแนนเลือกผู้สมัคร" use the words of the constituency panel (บัตรเลือกพรรค, บัตรเลือกผู้สมัคร);
+    // the official names (บัญชีรายชื่อ, แบบแบ่งเขต) are in each option's title and in the colour key, which keeps the
+    // closed menu short enough for a 1024 px window. Groups say what each colouring measures.
     $('mapControls').innerHTML = '<label class="field compact"><span class="sr-only">' + t('สีบนแผนที่', 'Map colour') + '</span><select id="mapMode" title="' + t('สีบนแผนที่', 'Map colour') + '">' +
-      opt('winner', state.party ? t('ที่นั่งเขตของพรรคที่เลือก', 'Seats of selected party') : t('พรรคที่ชนะเขตมากที่สุด', 'Party winning most seats'), state.mapMode) +
-      opt('support', t('สัดส่วนคะแนนของพรรคที่เลือก', 'Vote share of selected party'), state.mapMode) +
-      opt('turnout', t('อัตราการใช้สิทธิ', 'Turnout rate'), state.mapMode) + opt('invalid', t('สัดส่วนบัตรเสีย (แบ่งเขต)', 'Invalid ballot rate'), state.mapMode) + '</select></label>' +
-      (state.mapMode === 'support' ? '<label class="field compact"><span class="sr-only">' + t('ชนิดบัตร', 'Ballot') + '</span><select id="mapBallot" title="' + t('ชนิดบัตร', 'Ballot') + '">' + opt('partyList', t('บัญชีรายชื่อ', 'Party-list'), state.ballot) + opt('constituency', t('แบบแบ่งเขต', 'Constituency'), state.ballot) + '</select></label>' : '');
+      '<optgroup label="' + t('ที่นั่ง', 'Seats') + '">' + opt('winner', state.party ? t('ที่นั่งเขตของพรรคที่เลือก', 'Seats of selected party') : t('พรรคที่ชนะเขตมากที่สุด', 'Party winning most seats'), state.mapMode) + '</optgroup>' +
+      '<optgroup label="' + t('คะแนนเสียง', 'Votes') + '">' + opt('list', t('คะแนนเลือกพรรค', 'Party-list votes'), state.mapMode, t('บัตรเลือกพรรค (บัญชีรายชื่อ)', 'Party-list ballot')) + opt('cand', t('คะแนนเลือกผู้สมัคร', 'Candidate votes'), state.mapMode, t('บัตรเลือกผู้สมัคร (แบบแบ่งเขต)', 'Constituency ballot')) + '</optgroup>' +
+      '<optgroup label="' + t('การใช้สิทธิ', 'Voting') + '">' + opt('turnout', t('อัตราการใช้สิทธิ', 'Turnout rate'), state.mapMode) + opt('invalid', t('สัดส่วนบัตรเสีย (แบ่งเขต)', 'Invalid ballot rate'), state.mapMode) + '</optgroup></select></label>';
     $('mapTools').innerHTML = '<button type="button" class="map-reset" data-act="map-reset" title="' + t('กลับไปแผนที่ประเทศไทยตอนเปิดหน้าเว็บ', 'Back to the full map of Thailand') + '">' + RESET_ICON + t('รีเซ็ต', 'Reset') + '</button>' +
       '<button type="button" class="icon-btn" data-act="zoom" data-v="in" title="' + t('ขยาย', 'Zoom in') + '" aria-label="' + t('ขยายแผนที่', 'Zoom in') + '">+</button><button type="button" class="icon-btn" data-act="zoom" data-v="out" title="' + t('ย่อ', 'Zoom out') + '" aria-label="' + t('ย่อแผนที่', 'Zoom out') + '">−</button>';
   }
@@ -573,12 +658,12 @@
     const hex = d3.select('#hexmap');
     hex.interrupt('fly').interrupt('fade-svg').style('opacity', null);
     hex.selectAll('g.hex').interrupt('fade').style('opacity', null);
-    d3.select('#distmap').selectAll('g.dist').interrupt('enter').interrupt('leave').attr('opacity', null).attr('transform', null);
+    d3.select('#distmap').selectAll('g.dist, text.dist-label').interrupt('enter').interrupt('leave').attr('opacity', null).attr('transform', null);
     $('mapStage').classList.remove('is-animating');
   }
   function settleMap(target) {
     stopMapAnimations(); showLayer(!!target);
-    if (target) { hideTip(true); hidePill(); drawDistrictMap(); } else paintHexMap();
+    if (target) { setHover(''); hideTip(true); hidePill(); drawDistrictMap(); } else paintHexMap();
   }
   function provinceCamera(code) {
     const el = $('hexmap'), tile = tiles.find(x => x.code === code), s = Math.min(el.clientWidth / vb.w, el.clientHeight / vb.h) || 1;
@@ -602,6 +687,7 @@
       distKey = ''; drawDistrictMap(true);
       d3.select('#hexmap').transition('fade-svg').duration(300).style('opacity', 0).on('end', () => {
         if (token !== animToken) return;
+        setHover('');   // the lifted province rode in with the camera; the national map is put away without it
         $('hexmap').setAttribute('hidden', '');
         d3.select('#hexmap').style('opacity', null).selectAll('g.hex').style('opacity', null);
         $('mapStage').classList.remove('is-animating');
@@ -611,7 +697,7 @@
   function foldTransform(el) { const c = [el.clientWidth / 2, el.clientHeight / 2]; return 'translate(' + c[0] + ',' + c[1] + ') scale(0.8) translate(' + -c[0] + ',' + -c[1] + ')'; }
   function flyOut(code, token) {
     stopMapAnimations(); hideChartTip();
-    const stage = $('mapStage'), el = $('distmap'), cells = d3.select(el).selectAll('g.dist');
+    const stage = $('mapStage'), el = $('distmap'), cells = d3.select(el).selectAll('g.dist, text.dist-label');
     stage.classList.add('is-animating');
     const finish = () => {
       if (token !== animToken) return;
@@ -633,7 +719,7 @@
   }
   function hopProvince(code, token) {
     stopMapAnimations(); hideChartTip();
-    const el = $('distmap'), cells = d3.select(el).selectAll('g.dist');
+    const el = $('distmap'), cells = d3.select(el).selectAll('g.dist, text.dist-label');
     const next = () => { if (token !== animToken) return; loadShapes().then(() => { if (token !== animToken) return; showLayer(true); distKey = ''; drawDistrictMap(true); }).catch(() => settleMap(code)); };
     if (el.hasAttribute('hidden') || cells.empty()) { showLayer(true); next(); return; }
     cells.transition('leave').duration(200).ease(d3.easeCubicIn).attr('opacity', 0).attr('transform', foldTransform(el)).end().then(next, next);
@@ -645,11 +731,11 @@
      Fresh figures from the refresh button sweep in the same way, so changed provinces are seen to change. */
   let colourWas = null, refreshMotion = false;
   function colourChange() {
-    const now = { mode: state.mapMode, party: state.party, ballot: state.ballot }, was = colourWas, refreshed = refreshMotion;
+    const now = { mode: state.mapMode, party: state.party }, was = colourWas, refreshed = refreshMotion;
     colourWas = now; refreshMotion = false;
     if (!was || calmMotion()) return null;
     if (was.party !== now.party) return { party: now.party || was.party };
-    return was.mode !== now.mode || was.ballot !== now.ballot || refreshed ? { sweep: true } : null;
+    return was.mode !== now.mode || refreshed ? { sweep: true } : null;
   }
   function stronghold(party) {
     let best = null;
@@ -692,10 +778,14 @@
       if (motion) recolor(poly, label, fill, ink, delay(d));
       else { poly.interrupt('paint').attr('fill', fill).attr('fill-opacity', null); label.interrupt('paint').attr('fill', ink); }
     });
+    // A tile dimmed by the region filter casts a dimmed shadow too.
+    svg.selectAll('.hex-shade polygon').classed('is-outside', d => isOutside(d.code));
     setLegend(legend);
     const selTile = tiles.find(x => x.code === state.province);
     d3.select('#hexmap .sel-ring').attr('display', selTile ? null : 'none').attr('points', selTile ? hexPoints(selTile.cx, selTile.cy) : null);
-    layoutLabels();
+    layoutLabels();   // also redraws a lifted tile; it takes its new colour at once (the real tile may still be blending)
+    if (liftedCode) { const enc = out.get(liftedCode) || {}, copy = d3.select('#hexmap .hex-lifted'); copy.select('polygon').attr('fill', enc.fill || colors().empty).attr('fill-opacity', null); copy.select('text').attr('fill', enc.ink || colors().emptyInk); }
+    if (!litOnce && !$('hexmap').hasAttribute('hidden') && $('hexmap').clientWidth) lightUpMap();
   }
 
   /* ---------- province drill-down: real constituency outlines replace the national map ---------- */
@@ -725,13 +815,22 @@
       return { fill: r => Number.isFinite(get(r)) ? color(get(r)) : pal.empty, ink: r => Number.isFinite(get(r)) ? inkFor(color(get(r))) : pal.otherInk, value: r => fmtP(get(r)),
         legend: '<div class="lg-ramp"><span>' + lo + '%</span><i style="background:linear-gradient(90deg,' + color(lo) + ',' + color((lo + hi) / 2) + ',' + color(hi) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + (mode === 'turnout' ? t('อัตราการใช้สิทธิรายเขต สเกลเดียวกับทั้ง ' + D.rows.length + ' เขต', 'Constituency turnout, on one scale for all ' + D.rows.length + ' constituencies') : t('บัตรเสียแบบแบ่งเขต ÷ ผู้มาใช้สิทธิ รายเขต สเกลเดียวกับทั้ง ' + D.rows.length + ' เขต', 'Invalid constituency ballots ÷ turnout, on one scale for all ' + D.rows.length)) + '</p>' };
     }
-    if (mode === 'support' && party) {
-      const share = r => { const c = D.comparison(r, party); return state.ballot === 'partyList' ? c.listShare : (c.candidatePresent ? c.candidateShare : 0); };
+    const p = provinceOf(state.province);
+    if ((mode === 'list' || mode === 'cand') && party) {
+      const share = r => { const c = D.comparison(r, party); return mode === 'list' ? c.listShare : (c.candidatePresent ? c.candidateShare : 0); };
       const hi = Math.max(1, Math.ceil(d3.max(rows, share) || 1)), ramp = partyRamp(pal.shareBase, D.colorOf(party)), color = v => ramp(0.08 + 0.92 * v / hi);
       return { fill: r => Number.isFinite(share(r)) ? color(share(r)) : pal.empty, ink: r => Number.isFinite(share(r)) ? inkFor(color(share(r))) : pal.otherInk, value: r => fmtP(share(r)),
-        legend: '<div class="lg-ramp"><span>0%</span><i style="background:linear-gradient(90deg,' + rampStops(ramp, 0.08, 0, D.colorOf(party)) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + esc(party) + ' ' + (state.ballot === 'partyList' ? t('สัดส่วนคะแนนบัญชีรายชื่อในแต่ละเขต', 'party-list share in each constituency') : t('สัดส่วนคะแนนผู้สมัครในแต่ละเขต (ไม่ส่งผู้สมัครนับ 0)', 'candidate share in each constituency (no candidate counts as 0)')) + '</p>' };
+        legend: '<div class="lg-ramp"><span>0%</span><i style="background:linear-gradient(90deg,' + rampStops(ramp, 0.08, 0, D.colorOf(party)) + ')"></i><span>' + hi + '%</span></div><p class="lg-cap">' + esc(party) + ' ' + (mode === 'list' ? t('สัดส่วนคะแนนเลือกพรรคในแต่ละเขต', 'party-list share in each constituency') : t('สัดส่วนคะแนนผู้สมัครในแต่ละเขต (ไม่ส่งผู้สมัครนับ 0)', 'candidate share in each constituency (no candidate counts as 0)')) + '</p>' };
     }
-    const p = provinceOf(state.province);
+    if (mode === 'list') {
+      // No party chosen: the party with the most party votes in each constituency, beside who won the seat.
+      const top = r => { let best = null; for (const [x, v] of Object.entries(r.partyList || {})) if (Number.isFinite(v) && (!best || v > best[1])) best = [x, v]; return best ? best[0] : null; };
+      const mine = rows.filter(r => r.provinceCode === state.province), counts = d3.rollups(mine.filter(top), v => v.length, top).sort((a, b) => b[1] - a[1]);
+      const differ = mine.filter(r => top(r) && top(r) !== r.winnerParty).length;
+      return { fill: r => top(r) ? D.colorOf(top(r)) : pal.empty, ink: r => top(r) ? inkFor(D.colorOf(top(r))) : pal.otherInk, value: r => top(r) ? t('คะแนนเลือกพรรคสูงสุด ', 'most party votes: ') + top(r) : '',
+        legend: '<div class="lg-items">' + counts.map(([x, n]) => '<button type="button" class="lg-item" data-act="party" data-v="' + esc(x) + '">' + dot(x) + esc(x) + ' <small>' + n + t(' เขต', '') + '</small></button>').join('') + '</div><p class="lg-cap">' + t('สีคือพรรคที่ได้คะแนนเลือกพรรคมากที่สุดในแต่ละเขต', 'Colour is the party with the most party votes in each constituency') +
+          (differ ? t(' · ' + differ + ' จาก ' + mine.length + ' เขต ไม่ใช่พรรคของผู้ชนะเขต', ' · in ' + differ + ' of ' + mine.length + ' it is not the winner\'s party') : '') + '</p>' };
+    }
     if (party) {
       const c = D.colorOf(party), won = r => r.winnerParty === party;
       return { fill: r => won(r) ? c : pal.other, ink: r => won(r) ? inkFor(c) : pal.otherInk, value: r => r.winnerParty || '',
@@ -767,21 +866,29 @@
       const projection = d3.geoIdentity().reflectY(true).fitExtent([[18, 18], [W - 18, H - 18]], { type: 'FeatureCollection', features: feats });
       const path = d3.geoPath(projection);
       svg.selectAll('*').remove();
+      addSheenDefs(svg.append('defs'), 'dist').selectAll('path').data(feats).join('path').attr('d', path);
       const g = svg.append('g').attr('class', 'dist-layer');
+      // The province stands off the sea like the tiles of the national map (offset copies underneath).
+      const shade = g.append('g').attr('class', 'hex-shade').attr('aria-hidden', 'true');
+      for (const [dy, cls] of [[4, 'far'], [2, 'near']]) shade.append('g').attr('class', cls).attr('transform', 'translate(0,' + dy + ')').selectAll('path').data(feats).join('path').attr('d', path);
       const cells = g.selectAll('g.dist').data(feats, f => f.properties.id).join('g').attr('class', 'dist').attr('data-id', f => f.properties.id).attr('role', 'button').attr('tabindex', 0);
       cells.append('path').attr('d', path);
-      cells.append('text').attr('class', 'dist-label').each(function (f) {
-        const [x, y] = path.centroid(f), [[x0, y0], [x1, y1]] = path.bounds(f), size = Math.max(10, Math.min(22, Math.sqrt((x1 - x0) * (y1 - y0)) * 0.22));
-        d3.select(this).attr('x', x).attr('y', y).attr('dy', '.35em').attr('font-size', size).text(f.properties.number);
-      });
       g.append('path').attr('class', 'ring sel-ring').attr('display', 'none');
       g.append('path').attr('class', 'ring hover-ring').attr('display', 'none');
+      // Numbers in their own layer above every outline, so no neighbouring shape or ring can cover one; each sits at
+      // its shape's visual centre and is sized to the room there (see labelSpot / sizeDistLabels).
+      g.append('g').attr('class', 'dist-labels').attr('aria-hidden', 'true').selectAll('text').data(feats, f => f.properties.id).join('text')
+        .attr('class', 'dist-label').attr('data-id', f => f.properties.id).attr('dy', '.36em').text(f => f.properties.number)
+        .each(function (f) { const [x, y, r] = labelSpot(f, projection); this.__room = r; d3.select(this).attr('x', x.toFixed(1)).attr('y', y.toFixed(1)); });
+      el.__labelBase = Math.max(12, Math.min(17, Math.min(W, H) / 26));
+      sizeDistLabels(el, 1);
+      addSheen(g, 'dist', 0, 0, W, H);
       el.__path = path;
       distCamera = d3.zoomIdentity;
       if (!distZoom) {
         distZoom = d3.zoom().scaleExtent([1, 8])
           .filter(ev => ev.type === 'wheel' ? !ev.button : ev.type.startsWith('touch') ? (ev.touches.length > 1 || distCamera.k > 1.01) : !ev.button && !ev.ctrlKey)
-          .on('zoom', ev => { distCamera = ev.transform; d3.select(el).select('g.dist-layer').attr('transform', distCamera); hideChartTip(); });
+          .on('zoom', ev => { distCamera = ev.transform; d3.select(el).select('g.dist-layer').attr('transform', distCamera); sizeDistLabels(el, distCamera.k); hideChartTip(); });
         d3.select(el).call(distZoom).on('dblclick.zoom', null).style('touch-action', 'pan-y pinch-zoom');
         el.addEventListener('pointerover', ev => { const c = ev.target.closest('.dist'); if (c && ev.pointerType !== 'touch') hoverDistrict(c.dataset.id, ev); });
         el.addEventListener('pointermove', ev => { const c = ev.target.closest('.dist'); if (c && ev.pointerType !== 'touch') hoverDistrict(c.dataset.id, ev); });
@@ -796,8 +903,9 @@
     // A new colouring spreads from the middle of the province outward, like the bloom that opened it.
     const mid = [el.__fit[0] / 2, el.__fit[1] / 2], awayFromMid = f => { const [x, y] = el.__path.centroid(f); return Math.hypot(x - mid[0], y - mid[1]); };
     const farthest = motion ? d3.max(svg.selectAll('g.dist').data(), awayFromMid) || 1 : 1;
+    const labelOf = new Map(); svg.selectAll('text.dist-label').each(function (f) { labelOf.set(f.properties.id, d3.select(this)); });
     svg.selectAll('g.dist').each(function (f) {
-      const r = D.byId.get(f.properties.id), cell = d3.select(this), shape = cell.select('path'), label = cell.select('text');
+      const r = D.byId.get(f.properties.id), cell = d3.select(this), shape = cell.select('path'), label = labelOf.get(f.properties.id);
       if (motion) recolor(shape, label, enc.fill(r), enc.ink(r), 240 * awayFromMid(f) / farthest);
       else { shape.interrupt('paint').attr('fill', enc.fill(r)); label.interrupt('paint').attr('fill', enc.ink(r)); }
       label.classed('has-halo', enc.ink(r) === '#fff');
@@ -807,8 +915,8 @@
     // A constituency chosen from search or a list pulses once the map has settled, so the eye finds it.
     if (pulseId && pulseId === state.district) { const id = pulseId; pulseId = ''; setTimeout(() => pulseDistrict(id), entrance ? 780 : 80); }
     if (entrance && !calmMotion()) {
-      // Constituencies bloom out of the zoomed tile: the ones nearest the centre arrive first.
-      const c = [W / 2, H / 2], cells = svg.selectAll('g.dist');
+      // Constituencies bloom out of the zoomed tile: the ones nearest the centre arrive first, each with its number.
+      const c = [W / 2, H / 2], cells = svg.selectAll('g.dist, text.dist-label');
       const away = f => { const [x, y] = el.__path.centroid(f); return Math.hypot(x - c[0], y - c[1]); };
       const far = d3.max(cells.data(), away) || 1;
       cells.attr('opacity', 0).attr('transform', foldTransform(el))
@@ -817,9 +925,76 @@
         .on('end', function () { d3.select(this).attr('transform', null).attr('opacity', null); });
     }
   }
+  /* Constituency numbers. Each sits at its shape's visual centre: the point inside it farthest from every edge (the
+     pole of inaccessibility, found with the polylabel method), which a centroid is not for long, bent or hooked shapes.
+     That distance is the room the number has, so a number shrinks to fit inside its shape instead of spilling across
+     a border; a shape too small even for the 10 px floor keeps the floor and its halo (zooming in gives it room). */
+  function segDist2(px, py, ax, ay, bx, by) {
+    let x = ax, y = ay, dx = bx - x, dy = by - y;
+    if (dx || dy) { const k = ((px - x) * dx + (py - y) * dy) / (dx * dx + dy * dy); if (k > 1) { x = bx; y = by; } else if (k > 0) { x += dx * k; y += dy * k; } }
+    dx = px - x; dy = py - y;
+    return dx * dx + dy * dy;
+  }
+  function polylabel(rings, precision) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of rings[0]) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    const size = Math.min(x1 - x0, y1 - y0);
+    if (!(size > 0)) return [x0, y0, 0];
+    const dist = (x, y) => {   // distance to the outline, negative outside (holes count as outside)
+      let inside = false, best = Infinity;
+      for (const ring of rings) for (let i = 0, n = ring.length, j = n - 1; i < n; j = i++) {
+        const [ax, ay] = ring[i], [bx, by] = ring[j];
+        if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) inside = !inside;
+        best = Math.min(best, segDist2(x, y, ax, ay, bx, by));
+      }
+      return (inside ? 1 : -1) * Math.sqrt(best);
+    };
+    const cell = (x, y, h) => { const d = dist(x, y); return { x, y, h, d, max: d + h * Math.SQRT2 }; };
+    const heap = [];   // cells by the best distance they could still hold, largest first
+    const up = c => { heap.push(c); for (let i = heap.length - 1; i;) { const p = (i - 1) >> 1; if (heap[p].max >= heap[i].max) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+    const down = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) { heap[0] = last; for (let i = 0; ;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l].max > heap[m].max) m = l; if (r < heap.length && heap[r].max > heap[m].max) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } }
+      return top;
+    };
+    for (let x = x0; x < x1; x += size) for (let y = y0; y < y1; y += size) up(cell(x + size / 2, y + size / 2, size / 2));
+    let best = cell((x0 + x1) / 2, (y0 + y1) / 2, 0);
+    let a = 0, cx = 0, cy = 0;   // area centroid of the outer ring, another good first guess
+    for (let i = 0, r = rings[0], n = r.length, j = n - 1; i < n; j = i++) { const f = r[i][0] * r[j][1] - r[j][0] * r[i][1]; a += f; cx += (r[i][0] + r[j][0]) * f; cy += (r[i][1] + r[j][1]) * f; }
+    if (a) { const c = cell(cx / (3 * a), cy / (3 * a), 0); if (c.d > best.d) best = c; }
+    while (heap.length) {
+      const c = down();
+      if (c.d > best.d) best = c;
+      if (c.max - best.d <= precision) continue;
+      const h = c.h / 2;
+      up(cell(c.x - h, c.y - h, h)); up(cell(c.x + h, c.y - h, h)); up(cell(c.x - h, c.y + h, h)); up(cell(c.x + h, c.y + h, h));
+    }
+    return [best.x, best.y, best.d];
+  }
+  // [x, y, room] for a constituency in map pixels; a multi-part constituency (islands) is labelled in its roomiest part.
+  function labelSpot(f, project) {
+    const geo = f.geometry, polys = geo.type === 'MultiPolygon' ? geo.coordinates : geo.type === 'Polygon' ? [geo.coordinates] : [];
+    let best = null;
+    for (const poly of polys) {
+      const spot = polylabel(poly.map(ring => ring.map(pt => project(pt))), 0.5);
+      if (!best || spot[2] > best[2]) best = spot;
+    }
+    return best || [0, 0, 0];
+  }
+  // One size for every number that has room for it; a number in a tight shape shrinks to fit (never below 10 px).
+  // Sizes are screen pixels at zoom k: zooming in gives small shapes room to show their number at full size.
+  const DIST_FLOOR = 10;
+  function sizeDistLabels(el, k) {
+    const base = el.__labelBase || 14;
+    d3.select(el).selectAll('text.dist-label').each(function (f) {
+      const r = (this.__room || 0) * k, room = (String(f.properties.number).length > 1 ? 1.25 : 1.85) * r;   // digits fit the clear circle
+      this.setAttribute('font-size', (Math.max(DIST_FLOOR, Math.min(base, room)) / k).toFixed(2));
+    });
+  }
   function setDistrictRing(kind, id) {
     const el = $('distmap'), f = id && window.E69_DISTRICT_SHAPES?.features.find(x => x.properties.id === id && x.properties.provinceCode === state.province);
     d3.select(el).select('.' + kind + '-ring').attr('display', f && el.__path ? null : 'none').attr('d', f && el.__path ? el.__path(f) : null);
+    if (kind === 'hover') d3.select(el).selectAll('g.dist').classed('is-hover', x => !!f && x.properties.id === id);   // for the spotlight in e69.css
   }
   let pulseId = '';
   function pulseDistrict(id) {
@@ -834,7 +1009,7 @@
     if (!id) { hideChartTip(); return; }
     const r = D.byId.get(id);
     const zones = (r.zone || []).map(z => { const zp = zoneParts(z), extra = zp.paren.length > 72 ? zp.paren.slice(0, 70) + '…' : zp.paren; return '<li><b>' + esc(zp.base) + '</b>' + (extra ? ' <small>(' + esc(extra) + ')</small>' : '') + '</li>'; }).join('');
-    chartTip(ev, '<b>' + esc(dname(r)) + '</b>' + (zones ? '<ul class="tt-zones" aria-label="' + t('พื้นที่ในเขต', 'Areas in this constituency') + '">' + zones + '</ul>' : '') + (r.winnerParty ? '<div class="tt-row"><span>' + t('ผู้ชนะ', 'Winner') + '</span><span>' + esc(r.winnerName) + '</span></div><div class="tt-row"><span>' + t('พรรค', 'Party') + '</span><span>' + dot(r.winnerParty) + esc(r.winnerParty) + '</span></div><div class="tt-row"><span>' + t('คะแนน', 'Votes') + '</span><span>' + fmt(r.winnerVotes) + ' (' + fmtP(r.winnerShare) + ')</span></div><div class="tt-row"><span>' + t('ส่วนต่าง', 'Margin') + '</span><span>' + fmt(r.marginVotes) + ' (' + fmtP(r.marginPct) + ')</span></div>' : '<div>' + t('ยังไม่มีผู้ชนะ', 'No winner') + '</div>') + '<div class="tt-row"><span>' + t('อัตราการใช้สิทธิ', 'Turnout') + '</span><span>' + fmtP(r.turnoutPct) + '</span></div><small>' + t('คลิกเพื่อดูคะแนนผู้สมัครทุกคน', 'Click for every candidate') + '</small>');
+    chartTip(ev, '<b>' + esc(dname(r)) + '</b>' + (zones ? '<ul class="tt-zones" aria-label="' + t('พื้นที่ในเขต', 'Areas in this constituency') + '">' + zones + '</ul>' : '') + (r.winnerParty ? '<div class="tt-win">' + face(r.winner, r.winnerParty, 'md') + '<span><small>' + t('ผู้ชนะ', 'Winner') + '</small><b>' + nm(r.winnerName) + '</b><small>' + dot(r.winnerParty) + esc(r.winnerParty) + '</small></span></div><div class="tt-row"><span>' + t('คะแนน', 'Votes') + '</span><span>' + fmt(r.winnerVotes) + ' (' + fmtP(r.winnerShare) + ')</span></div><div class="tt-row"><span>' + t('ส่วนต่าง', 'Margin') + '</span><span>' + fmt(r.marginVotes) + ' (' + fmtP(r.marginPct) + ')</span></div>' : '<div>' + t('ยังไม่มีผู้ชนะ', 'No winner') + '</div>') + '<div class="tt-row"><span>' + t('อัตราการใช้สิทธิ', 'Turnout') + '</span><span>' + fmtP(r.turnoutPct) + '</span></div><small>' + t('คลิกเพื่อดูคะแนนผู้สมัครทุกคน', 'Click for every candidate') + '</small>');
   }
   function pickDistrict(id) {
     hideChartTip();
@@ -918,12 +1093,34 @@
       text.attr('font-size', px / scale).attr('display', null);
       text.selectAll('tspan').data(best.o.lines).join('tspan').attr('x', d.cx).attr('dy', (_, i) => i === 0 ? (-(n - 1) / 2 * LINE + 0.36) + 'em' : LINE + 'em').text(x => x);
     });
+    if (liftedCode) liftTile(liftedCode, true);
   }
 
   function setHover(code) {
     d3.select('#hexmap').selectAll('g.hex').classed('is-hover', d => d.code === code);
-    const tile = tiles.find(x => x.code === code);
-    d3.select('#hexmap .hover-ring').attr('display', tile ? null : 'none').attr('points', tile ? hexPoints(tile.cx, tile.cy) : null);
+    liftTile(code);
+  }
+  /* The province under the pointer (or keyboard focus) rises a little above its neighbours: a copy of its tile and
+     name, with the glowing outline, grows to LIFT around the tile's centre with a small overshoot and casts a soft
+     shadow. The copy takes no pointer events, so the real tile underneath still answers the pointer. `still` redraws
+     the copy at full lift without motion (new colours, re-fitted labels). */
+  const LIFT = 1.14;
+  let liftedCode = '';
+  function liftTile(code, still) {
+    const lift = d3.select('#hexmap .hex-lift');
+    if (lift.empty() || (code === liftedCode && !still)) return;
+    liftedCode = code || '';
+    lift.selectAll('g.lift-wrap').interrupt('lift').remove();
+    const tile = code && tiles.find(x => x.code === code), src = tile && document.querySelector('#hexmap g.hex[data-code="' + code + '"]');
+    if (!src) return;
+    const at = k => 'translate(' + tile.cx + ',' + tile.cy + ') scale(' + k + ') translate(' + -tile.cx + ',' + -tile.cy + ')';
+    const wrap = lift.append('g').attr('class', 'lift-wrap'), copy = src.cloneNode(true);
+    for (const a of ['role', 'tabindex', 'aria-label', 'aria-pressed', 'data-code', 'style', 'class']) copy.removeAttribute(a);
+    copy.setAttribute('class', ['hex-lifted', ...['has-halo', 'is-outside'].filter(c => src.classList.contains(c))].join(' '));
+    wrap.node().append(copy);
+    wrap.append('polygon').attr('class', 'ring hover-ring').attr('points', hexPoints(tile.cx, tile.cy));
+    if (still || calmMotion()) wrap.attr('transform', at(LIFT));
+    else wrap.attr('transform', at(1)).transition('lift').duration(240).ease(d3.easeBackOut.overshoot(2.2)).attr('transform', at(LIFT));
   }
   function showPill(code) {
     const pill = $('hexPill'), p = provinceOf(code); if (!p) return;
@@ -1063,13 +1260,13 @@
     return '<div class="parl"><div class="parl-bar" role="img" aria-label="' + esc(segs.map(s => s.name + ' ' + s.seats).join(', ')) + '">' + segs.map(s => '<span style="flex:' + s.seats + ';--c:' + s.color + '" title="' + esc(s.name + ' ' + s.seats) + '"' + (state.party && state.party !== s.name ? ' class="dim"' : '') + '>' + (s.seats >= 40 ? s.seats : '') + '</span>').join('') + '</div><span class="parl-mark" style="left:' + (CFG().majority / CFG().totalSeats * 100) + '%"><i></i>' + t('เสียงข้างมาก ', 'Majority ') + CFG().majority + '</span>' +
       '<ul class="parl-legend">' + segs.map(s => '<li>' + (s.other ? '<i class="dot" style="--c:#94a3b8"></i>' : dot(s.name)) + (s.other ? esc(s.name) : '<button type="button" data-act="party" data-v="' + esc(s.name) + '">' + esc(s.name) + '</button>') + ' <b>' + s.seats + '</b></li>').join('') + '</ul></div>';
   }
+  // The panel beside the national map: the House and the closest races. (The list of every province, coloured by its
+  // leading party, was removed on 7 Nov 2026: the map shows the same thing, and the map itself, search and the
+  // province filter still reach every province by keyboard.)
   function nationalContext() {
     const rows = scopeRows(), close = rows.filter(r => Number.isFinite(r.marginPct)).sort((a, b) => a.marginPct - b.marginPct).slice(0, 6);
-    const regions = D.regions.filter(r => !state.region || r.name === state.region);
     return '<div class="ctx"><header class="ctx-head"><h2>' + t('สภาผู้แทนราษฎร ' + CFG().totalSeats + ' ที่นั่ง', 'The ' + CFG().totalSeats + '-seat House') + '</h2></header>' + parliamentBar() +
-      '<section class="ctx-sec"><h3>' + t('เขตที่ชนะกันสูสีที่สุด', 'Closest races') + (state.region ? ' · ' + esc(rname(state.region)) : '') + '</h3><ol class="close-list">' + close.map(r => '<li><button type="button" data-act="district" data-v="' + r.id + '"><span class="who"><b>' + esc(dname(r)) + '</b><small>' + dot(r.winnerParty) + esc(r.winnerParty) + t(' ชนะ ', ' beat ') + esc(r.runner.party) + '</small></span><span class="num">' + fmtP(r.marginPct) + '<small>' + fmt(r.marginVotes) + t(' คะแนน', ' votes') + '</small></span></button></li>').join('') + '</ol><p class="caveat">' + t('ส่วนต่างน้อยหมายถึงการแข่งขันสูสี ไม่ได้บ่งชี้ความผิดปกติ', 'A small margin means a competitive race; it is not evidence of irregularity.') + '</p></section>' +
-      '<section class="ctx-sec"><h3>' + t('รายชื่อจังหวัดทั้งหมด', 'All provinces') + ' <small>' + t('สีคือพรรคที่ชนะเขตมากที่สุด ตัวเลขคือจำนวนเขต', 'colour shows the leading party, number shows constituencies') + '</small></h3>' +
-      regions.map(g => '<div class="prov-group"><h4>' + esc(rname(g.name)) + ' <small>' + g.provinces.length + t(' จังหวัด · ', ' provinces · ') + g.count + t(' เขต', ' constituencies') + '</small></h4><div class="prov-chips">' + g.provinces.map(code => { const p = provinceOf(code); return '<button type="button" data-act="province" data-v="' + code + '">' + (p.leaders.length === 1 ? dot(p.leaders[0]) : '<i class="dot stripe" aria-hidden="true"></i>') + esc(pname(p)) + ' <small>' + p.count + '</small></button>'; }).join('') + '</div></div>').join('') + '</section></div>';
+      '<section class="ctx-sec"><h3>' + t('เขตที่ชนะกันสูสีที่สุด', 'Closest races') + (state.region ? ' · ' + esc(rname(state.region)) : '') + '</h3><ol class="close-list">' + close.map(r => '<li><button type="button" data-act="district" data-v="' + r.id + '"><span class="who"><b>' + esc(dname(r)) + '</b><small>' + dot(r.winnerParty) + esc(r.winnerParty) + t(' ชนะ ', ' beat ') + esc(r.runner.party) + '</small></span><span class="num">' + fmtP(r.marginPct) + '<small>' + fmt(r.marginVotes) + t(' คะแนน', ' votes') + '</small></span></button></li>').join('') + '</ol><p class="caveat">' + t('ส่วนต่างน้อยหมายถึงการแข่งขันสูสี ไม่ได้บ่งชี้ความผิดปกติ', 'A small margin means a competitive race; it is not evidence of irregularity.') + '</p></section></div>';
   }
 
   /* ---------- sheet (mobile province / constituency details; analysis details on small screens) ---------- */
@@ -1134,7 +1331,7 @@
       const r = D.byId.get(it.id), sub = it.matched >= 2 ? it.subs[it.matched - 2] : '';
       return ['<b>' + (sub ? esc(sub) + ' <span class="sr-in">' + t('ใน', 'in') + '</span> ' : '') + esc(it.area) + (it.partial && !sub ? ' <span class="sr-in">' + t('(บางส่วน)', '(part)') + '</span>' : '') + '</b><small>' + esc(dname(r)) + ' ' + dot(r.winnerParty) + esc(r.winnerParty || '') + '</small>', t('พื้นที่', 'Area')];
     }
-    const r = D.byId.get(it.id); return ['<b>' + esc(it.name) + '</b><small>' + dot(it.party) + esc(it.party) + ' · ' + esc(dname(r)) + '</small>', t('ผู้สมัคร', 'Candidate')];
+    const r = D.byId.get(it.id); return [face({ officialCandidateId: it.cid }, it.party, 'xs') + '<span class="sr-text"><b>' + nm(it.name) + '</b><small>' + dot(it.party) + esc(it.party) + ' · ' + esc(dname(r)).replace(/ (\S+)$/, '&nbsp;$1') + '</small></span>', t('ผู้สมัคร', 'Candidate')];
   }
   function suggest() {
     const q = norm($('search').value), box = $('searchResults');
@@ -1148,7 +1345,7 @@
     const order = { province: 0, district: 1, area: 2, party: 3, candidate: 4 }, quota = { province: 4, district: 5, area: 8, party: 3, candidate: 6 };
     scored.sort((a, b) => a.s - b.s || order[a.it.type] - order[b.it.type]);
     results = scored.filter(x => quota[x.it.type]-- > 0).slice(0, 18).map(x => ({ ...x.it, matched: x.m })); active = -1;
-    box.innerHTML = results.length ? results.map((it, i) => { const [label, kind] = itemLabel(it); return '<div role="option" id="sr' + i + '" class="sr" data-i="' + i + '" aria-selected="false"><span class="sr-main">' + label + '</span><span class="sr-kind">' + kind + '</span></div>'; }).join('') : '<p class="sr-empty">' + t('ไม่พบผล ลองพิมพ์ชื่อจังหวัด ชื่อเขตหรืออำเภอ เลขเขต ชื่อผู้สมัคร หรือพรรค', 'No match. Try a province, district or amphoe name, constituency number, candidate or party.') + '</p>';
+    box.innerHTML = results.length ? results.map((it, i) => { const [label, kind] = itemLabel(it); return '<div role="option" id="sr' + i + '" class="sr" data-i="' + i + '" aria-selected="false"><span class="sr-main">' + label + '</span><span class="sr-kind' + (it.type === 'candidate' ? ' sr-only' : '') + '">' + kind + '</span></div>'; }).join('') : '<p class="sr-empty">' + t('ไม่พบผล ลองพิมพ์ชื่อจังหวัด ชื่อเขตหรืออำเภอ เลขเขต ชื่อผู้สมัคร หรือพรรค', 'No match. Try a province, district or amphoe name, constituency number, candidate or party.') + '</p>';
     if (box.hidden) replay(box, 'sr-open', 300);   // the list drops open once, not on every keystroke
     box.hidden = false; $('search').setAttribute('aria-expanded', 'true');
   }
@@ -1201,7 +1398,6 @@
     Object.assign(state, patch);
     if (Object.hasOwn(patch, 'region') && state.province && provinceOf(state.province).region !== state.region && state.region) { state.province = ''; state.district = ''; }
     if (Object.hasOwn(patch, 'province') && !patch.province) { state.district = ''; state.candidate = ''; }
-    if (Object.hasOwn(patch, 'party') && !patch.party && state.mapMode === 'support') state.mapMode = 'winner';
     render(opts);
   }
   E69.setState = setState;
@@ -1253,6 +1449,7 @@
       '<li>' + t('ชื่อจังหวัดภาษาอังกฤษ: ตารางชื่อจังหวัดในชุด Thailand Hex Map (data/provinces-visited.csv)', 'English province names: the province table shipped with Thailand Hex Map (data/provinces-visited.csv)') + '</li>' +
       '<li>' + t('ความหนาแน่นประชากรรายจังหวัด ปี 2567 (2024): สำนักงานสถิติแห่งชาติ', 'Province population density, 2024: National Statistical Office of Thailand') + '</li>' +
       '<li>' + t('ภาพบุคคลพรรค: ภาพแคนดิเดตนายกรัฐมนตรีจากระบบรายงาน กกต. (ectreport69.ect.go.th)', 'Party figures: PM-candidate portraits from the ECT reporting system (ectreport69.ect.go.th)') + '</li>' +
+      (CFG().candidatePhotos ? '<li>' + t('ภาพผู้สมัครแบบแบ่งเขต: ภาพทางการจากระบบรายงาน กกต. ตัดพื้นหลังและจัดขนาดใบหน้าให้เท่ากันแบบภาพหัวหน้าพรรค ปรับแสงเพียงเล็กน้อย ไม่ได้ตกแต่งใบหน้า ผู้ที่ไม่มีภาพแสดงเป็นรูปสัญลักษณ์', 'Constituency candidates: official ECT photos, background removed and faces scaled to one size as for the party figures, with only slight light adjustment and no retouching; a plain figure marks anyone without a photo') + '</li>' : '') +
       '<li>' + t('ไอคอน: ดัดแปลงจาก Lucide (ISC License)', 'Icons adapted from Lucide (ISC License)') + '</li></ul></section>' +
       '<section><h3>' + t('นิยามที่ใช้', 'Definitions') + '</h3><ul>' +
       '<li>' + t('อัตราการใช้สิทธิ = Σผู้มาใช้สิทธิ ÷ Σผู้มีสิทธิ × 100 (รวมตัวเศษและตัวส่วนก่อนหาร ไม่เฉลี่ยร้อยละรายเขต) ใช้ยอดผู้มาใช้สิทธิของบัตรแบบแบ่งเขต', 'Turnout = Σ voters ÷ Σ eligible × 100, summing numerators and denominators first (no averaging of percentages); uses the constituency-ballot turnout count') + '</li>' +
@@ -1306,7 +1503,6 @@
     else if (id === 'fProvince') { setState({ province: v, district: '', candidate: '' }); if (v && narrow() && state.page === 'overview') { closeNav(); openSheet({ kind: 'province', id: v }); } }
     else if (id === 'fParty') setState({ party: v });
     else if (id === 'mapMode') setState({ mapMode: v });
-    else if (id === 'mapBallot') setState({ ballot: v });
     else E69.analysis?.onChange?.(id, v, ev);
   });
   document.addEventListener('keydown', ev => {
@@ -1380,7 +1576,7 @@
   /* ---------- pointer light ---------- */
   // Menu items, tabs, buttons, chips, KPI tiles and party cards hold a soft light under the mouse: e69.css draws it at
   // --mx/--my. One listener for the page, at most one update per frame, mouse and pen only.
-  const SPOT = '.nav-item, .an-tabs button, .seg button, .icon-btn, .map-reset, .clear-all, .ghost-btn, .chip, .others-row, .close-list button, .prov-chips button, .theme-list button, .kpi, .party-card, button.lg-item, .pd-list li > button, .sr, .brush-list li button, .prov-bars button';
+  const SPOT = '.nav-item, .an-tabs button, .seg button, .icon-btn, .map-reset, .clear-all, .ghost-btn, .chip, .others-row, .close-list button, .theme-list button, .kpi, .party-card, button.lg-item, .pd-list li > button, .sr, .brush-list li button, .prov-bars button';
   let spotEvent = null, spotFrame = 0;
   document.addEventListener('pointermove', ev => {
     if (ev.pointerType === 'touch') return;

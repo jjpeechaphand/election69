@@ -107,6 +107,9 @@
       official: { eligible: int(s.official_eligible, sAt('official_eligible')), turnout: int(s.official_turnout, sAt('official_turnout')), valid: int(s.official_valid, sAt('official_valid')),
         invalid: int(s.official_invalid, sAt('official_invalid')), noVote: int(s.official_no_vote, sAt('official_no_vote')) },
       districtShapes: s.district_shapes || 'district-shapes.js', densitySource: s.density_source || '', check,
+      // Candidate portraits: a path with {id} = ECT candidate id (e.g. BKK_1_5); ids listed as missing are never requested.
+      candidatePhotos: /\{id\}/.test(s.candidate_photos || '') ? s.candidate_photos : '',
+      candidatePhotosMissing: (s.candidate_photos_missing || '').split('|').map(v => v.trim()).filter(Boolean),
       elections: (all || [entry]).map(e => ({ id: e.id, nameTh: e.nameTh, nameEn: e.nameEn, active: e.active })),
     };
 
