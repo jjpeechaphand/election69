@@ -796,68 +796,8 @@ body.sheet-open { overscroll-behavior: contain; }
   .an-body.with-detail { grid-template-columns: minmax(0, 1fr); }
   .an-body.with-detail .an-detail { display: none; }
 }
-@media (max-width: 899px) {
-  body { overflow: hidden; }
-  .app { grid-template-columns: minmax(0, 1fr); }
-  .sidebar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); transform: translateX(-102%); transition: transform .2s ease; box-shadow: var(--float); background: var(--surface); }   /* the drawer covers the page, so it is solid */
-  body.nav-open .sidebar { transform: none; }
-  .icon-btn.close-nav { display: inline-grid; }
-  .menu-btn { display: inline-grid; width: 44px; height: 44px; }
-  .topbar { padding: 8px 12px; gap: 8px 10px; flex-wrap: wrap; min-height: 60px; }
-  .page-titles h1 { font-size: 18px; }
-  .page-sub { font-size: 12px; }
-  .lang-flags { gap: 2px; }
-  .top-actions { gap: 10px; }
-  .refresh-note { max-width: min(280px, calc(100vw - 24px)); }
-  .chips { order: 3; max-width: none; width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; }
-  .chips:empty { display: none; }
-  .chip { flex: none; }
-  .page { padding: 12px 10px 24px; }
-  .ov { display: flex; flex-direction: column; gap: 12px; height: auto; min-height: 0; }
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .kpi { padding: 10px 12px; }
-  .kpi-value { font-size: 24px; }
-  .kpi:nth-child(2) { border-right: 0; }
-  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-  .party-cards { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-top: 8px; margin-top: -8px; padding-bottom: 10px; }
-  .party-card { flex: 0 0 152px; scroll-snap-align: start; }
-  .map-card { margin: 0 -4px; }
-  .map-stage { min-height: 0; height: min(90dvh, 820px); flex: none; display: flex; flex-direction: column; margin: 0 4px; }
-  #hexmap { flex: 1; min-height: 0; height: auto; }
-  .map-legend { position: static; width: auto; max-height: none; margin: 0 6px 6px; flex: none; }
-  .map-legend .lg-items { display: flex; flex-wrap: wrap; gap: 0 4px; }
-  .context-card { max-height: none; overflow: visible; }
-  .context-card .pd-list { overflow: visible; }
-  .province-tip { display: none !important; }
-  .an-tabs { width: auto; }
-  .an-grid { grid-auto-rows: auto; }
-  .chart-card { min-height: 0; }
-  .chart-box { height: 62dvh; min-height: 320px; flex: none; }
-  .chart-box.scroll { height: 62dvh; }
-  .pd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-/* Phones: the colour theme and refresh controls become a slim row under the language flags, so they take almost no
-   width from the page title and no extra height (the title block is already two lines tall). */
-@media (max-width: 560px) {
-  .top-actions { display: grid; grid-template-columns: auto auto; grid-template-areas: "flags flags" "theme status"; justify-content: center; align-items: center; gap: 2px; }
-  .prefs { display: contents; }
-  .lang-flags { grid-area: flags; justify-self: center; }
-  .theme-menu { grid-area: theme; }
-  .data-status { grid-area: status; justify-content: center; gap: 4px; }
-  .theme-btn, .refresh-btn { width: 24px; height: 24px; border: 0; background: none; }
-  .theme-btn svg, .refresh-btn svg { width: 15px; height: 15px; }
-  .theme-btn[aria-expanded=true] { background: var(--wash); }
-  .updated-at .ua-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .updated-at b { font-size: 11px; font-weight: 500; color: var(--muted); }
-}
-@media (max-width: 420px) {
-  .kpi-value { font-size: 21px; }
-  .card-head { padding: 12px 12px 8px; }
-  .map-head { flex-wrap: wrap; }
-  .map-controls { flex: 1 1 100%; justify-content: flex-start; }
-  .map-controls .field { flex: 1 1 140px; }
-  .map-controls select { max-width: none; }
-}
+/* Phones and phones held sideways (the "m" class on <html>, below 900 px wide or a short touch screen) have a layout
+   of their own: see "phone layout" at the end of this file. Nothing above changes for them except what it overrides. */
 /* ---------- pointer light ---------- */
 /* Menu items, tabs, buttons, chips, KPI tiles and party cards hold a soft light under the mouse; e69-app.js keeps
    --mx/--my at the pointer. It fades in and out (--spot), is a brighter sky on selected (dark) items and the party's
@@ -872,5 +812,372 @@ body.sheet-open { overscroll-behavior: contain; }
 .kpi { --spot-r: 170px; --spot-c: color-mix(in srgb, var(--spot-surface) 75%, transparent); }
 .party-card { --spot-r: 160px; --spot-c: color-mix(in srgb, var(--party) 32%, transparent); }
 .nav-item.active, .nav-item.active:hover, .an-tabs button[aria-selected=true], .an-tabs button[aria-selected=true]:hover, .seg button[aria-pressed=true], .seg button[aria-pressed=true]:hover { --spot-c: var(--spot-inv); background-color: var(--inv); background-image: var(--spot-img), linear-gradient(180deg, var(--inv-top), var(--inv)); }
+
+/* ---------- phone layout ---------- */
+/* Below 900 px, and on phones held sideways, the page works like an app: a slim bar on top (logo, page title, the date
+   of the data, language flags), one view at a time, and a tab bar at the bottom within reach of the thumb (summary,
+   map, analysis, search, filters). Search and filters open as panels above the tab bar; a province or constituency
+   opens in a panel under the map that can be dragged between a peek, half the screen and the full screen. Every control
+   is at least 44 px and text is 12.5 px and up (16 px in form fields, so iPhones do not zoom). Every rule is scoped to
+   :root.m (set before the first paint in index.html), so the desktop layout never sees any of them. */
+:root:not(.m) .m-only { display: none !important; }
+:root.m {
+  --m-tab: 64px; --m-gap: 12px;
+  --m-st: env(safe-area-inset-top, 0px); --m-sb: env(safe-area-inset-bottom, 0px); --m-sl: env(safe-area-inset-left, 0px); --m-sr: env(safe-area-inset-right, 0px);
+  --m-bottom: calc(var(--m-tab) + var(--m-sb));
+}
+:root.m body { font-size: 15px; -webkit-tap-highlight-color: transparent; }
+:root.m .app { display: block; height: 100vh; height: 100dvh; }
+:root.m .main { height: 100vh; height: 100dvh; padding-bottom: var(--m-bottom); }
+:root.m .province-tip, :root.m .hex-pill { display: none !important; }
+
+/* top bar: logo, title with the date of the data, flags; active filters as a row of chips underneath */
+:root.m .topbar { position: relative; z-index: 30; flex-wrap: wrap; align-items: center; gap: 0 10px; min-height: 0; padding: calc(8px + var(--m-st)) calc(8px + var(--m-sr)) 8px calc(12px + var(--m-sl)); }
+:root.m :is(.menu-btn, .data-status, .theme-menu) { display: none; }
+:root.m .m-brand { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -4px; padding: 0; border: 0; background: none; }
+:root.m .m-brand .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
+:root.m .page-titles { flex: 1; min-width: 0; }
+:root.m .page-titles h1 { font-size: 17px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root.m .page-sub { font-size: 12.5px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-wrap: nowrap; }
+:root.m :is(.top-actions, .prefs, .lang-flags) { gap: 0; }
+:root.m .flag-btn { width: 44px; height: 44px; border-radius: 10px; }
+:root.m .flag-btn svg { width: 28px; height: 19px; }
+:root.m .chips { order: 3; flex: 1 0 100%; max-width: none; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin: 6px calc(-8px - var(--m-sr)) 0 calc(-12px - var(--m-sl)); padding: 0 calc(8px + var(--m-sr)) 0 calc(12px + var(--m-sl)); scrollbar-width: none; }
+:root.m .chips::-webkit-scrollbar { display: none; }
+:root.m .chips:empty { display: none; }
+:root.m .chip { flex: none; min-height: 40px; gap: 8px; padding: 2px 12px 2px 14px; font-size: 14px; }
+:root.m .chip span { font-size: 19px; }
+
+/* tab bar */
+:root.m .m-tabbar { position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; height: var(--m-bottom); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 0 var(--m-sr) var(--m-sb) var(--m-sl); background: var(--glass-strong); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px -16px rgba(var(--scrim-rgb), .55); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); }
+:root.m .m-tab { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px 5px; border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.25; }
+:root.m .m-tab .ic { display: grid; place-items: center; width: 56px; height: 30px; border-radius: 15px; transition: background-color .2s, color .2s; }
+:root.m .m-tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+:root.m .m-tab .lb { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root.m .m-tab:is([aria-current=page], [aria-expanded=true]) { color: var(--ink); font-weight: 600; }
+:root.m .m-tab:is([aria-current=page], [aria-expanded=true]) .ic { background: var(--inv) linear-gradient(180deg, var(--inv-top), var(--inv)); color: var(--inv-ink); box-shadow: 0 6px 14px -9px rgba(var(--scrim-rgb), .9); }
+:root.m .m-badge { position: absolute; top: 2px; left: calc(50% + 9px); min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--flag-red); color: #fff; font-size: 11.5px; font-weight: 700; line-height: 19px; text-align: center; box-shadow: 0 0 0 2px var(--surface); }
+
+/* pages and cards */
+:root.m .page { padding: var(--m-gap) calc(var(--m-gap) + var(--m-sr)) 28px calc(var(--m-gap) + var(--m-sl)); overscroll-behavior-y: contain; }
+:root.m .card-head { padding: 14px 14px 10px; }
+:root.m .card-head h2 { font-size: 18px; line-height: 1.4; }
+:root.m .card-note, :root.m .caveat { font-size: 12.5px; }
+:root.m .na-box { font-size: 14px; }
+
+/* summary view: key figures, party cards (all ten), a way into the map, the House and the closest races */
+:root.m body[data-mview=summary] .ov { display: flex; flex-direction: column; gap: var(--m-gap); height: auto; }
+:root.m body[data-mview=summary] :is(.map-card, .context-card) { display: none; }
+:root.m body[data-mview=map] :is(.kpis, .parties-card, .m-national, .m-map-cta, .m-foot) { display: none; }
+:root.m .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root.m .kpi { padding: 12px 14px 13px; }
+:root.m .kpi:nth-child(2) { border-right: 0; }
+:root.m .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+:root.m .kpi-label { font-size: 13.5px; }
+:root.m .kpi-value { font-size: 26px; font-weight: 700; }
+:root.m .kpi-note { font-size: 12.5px; }
+:root.m .parties-card .card-head { gap: 10px; padding-bottom: 10px; }
+:root.m .parties-card h2 small { display: block; margin: 2px 0 0; font-size: 13px; }
+:root.m #partyOthers { width: 100%; }
+:root.m .others-row { width: 100%; min-height: 46px; justify-content: space-between; padding: 6px 14px; border-radius: var(--r-md); font-size: 14px; }
+:root.m .party-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; overflow: visible; margin: 0; padding: 2px 12px 14px; scroll-snap-type: none; }
+:root.m .party-card { flex: none; min-height: 128px; padding: 9px 11px 10px; }
+:root.m .pc-name { font-size: 14.5px; }
+:root.m .pc-total { font-size: 34px; }
+:root.m .pc-split { font-size: 12.5px; }
+:root.m .m-map-cta { position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; width: 100%; padding: 14px 16px 14px 14px; text-align: left; color: var(--ink); font: inherit; }
+:root.m .m-map-cta .mini { display: block; width: 86px; height: auto; filter: drop-shadow(0 3px 4px rgba(var(--scrim-rgb), .18)); }
+:root.m .m-map-cta .mini polygon { stroke: var(--tile-gap); stroke-width: 1.2px; }
+:root.m .m-map-cta .txt { display: grid; gap: 4px; justify-items: start; }
+:root.m .m-map-cta .t1 { font-size: 18px; font-weight: 600; line-height: 1.35; }
+:root.m .m-map-cta .t2 { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+:root.m .m-map-cta .go { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-top: 6px; padding: 0 16px; border-radius: 99px; background: var(--inv) linear-gradient(180deg, var(--inv-top), var(--inv)); color: var(--inv-ink); font-size: 14px; font-weight: 600; }
+:root.m .m-map-cta .go svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+:root.m .m-national .ctx { padding: 16px 14px; }
+:root.m .ctx-head h2 { font-size: 18px; }
+:root.m .parl-bar { height: 36px; }
+:root.m .parl-bar span { line-height: 36px; font-size: 13.5px; }
+:root.m .parl-mark { font-size: 12.5px; }
+:root.m .parl-legend { gap: 0 16px; font-size: 14px; }
+:root.m .parl-legend button { min-height: 40px; }
+:root.m .ctx-sec h3 { font-size: 16px; }
+:root.m .close-list { gap: 6px; }
+:root.m .close-list button { min-height: 58px; padding: 8px 12px 8px 14px; }
+:root.m .close-list .who b { font-size: 14.5px; }
+:root.m .m-foot { display: grid; gap: 8px; justify-items: center; padding: 4px 8px 8px; text-align: center; font-size: 12.5px; color: var(--muted); }
+:root.m .m-foot .ghost-btn { min-height: 44px; font-size: 14px; color: var(--accent); }
+
+/* map view: the map fills the screen; a province or constituency opens in a panel under it */
+:root.m body[data-mview=map] #pageOverview { padding: 0; overflow: hidden; }
+:root.m body[data-mview=map] .ov { position: relative; display: flex; flex-direction: column; gap: 0; height: 100%; }
+:root.m body[data-mview=map] .map-card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin: 0; padding: 0 0 4px; background: none; border: 0; border-radius: 0; box-shadow: none; }
+:root.m .map-head { flex-wrap: nowrap; align-items: center; gap: 10px; padding: 8px calc(10px + var(--m-sr)) 8px calc(14px + var(--m-sl)); }
+:root.m #mapHeading { flex: 1 1 auto; min-width: 0; }
+:root.m .map-head h2 { font-size: 17px; line-height: 1.35; }
+:root.m .map-head h2 small { font-size: 13px; }
+:root.m .map-back { min-height: 32px; margin: 0 0 0 -2px; font-size: 14px; }
+:root.m .m-hint { margin: 1px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+:root.m .map-controls { flex: none; }
+:root.m #mapControls .field { display: none; }
+:root.m .m-mode { display: inline-flex; align-items: center; gap: 7px; max-width: 46vw; min-height: 44px; padding: 0 12px 0 10px; border: 1px solid var(--line-2); border-radius: 99px; background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 600; box-shadow: 0 4px 12px -9px rgba(var(--scrim-rgb), .6); }
+:root.m .m-mode .sw { flex: none; width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px var(--dot-ring); }
+:root.m .m-mode .lb { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root.m .m-mode::after { content: ''; flex: none; width: 7px; height: 7px; margin: -4px 2px 0 2px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+:root.m body[data-mview=map] .map-stage { flex: 1 1 auto; min-height: 0; height: auto; display: block; margin: 0 calc(8px + var(--m-sr)) 0 calc(8px + var(--m-sl)); }
+:root.m body[data-mview=map] :is(#hexmap, #distmap) { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none !important; }
+:root.m .map-tools { top: 8px; right: 8px; gap: 8px; }
+:root.m .map-tools .icon-btn { width: 44px; height: 44px; font-size: 22px; background: var(--glass-strong); }
+:root.m .map-reset { min-height: 44px; padding: 0 13px 0 11px; font-size: 14px; background: var(--glass-strong); }
+:root.m .map-legend, :root.m .map-stage.is-province .map-legend { position: absolute; z-index: 3; left: 8px; right: auto; top: auto; bottom: 8px; width: auto; max-height: none; margin: 0; padding: 0; background: none; border: 0; overflow: visible; }
+:root.m .lg-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line-2); border-radius: 99px; background: var(--glass-strong); color: var(--ink); font-size: 14px; font-weight: 600; box-shadow: 0 6px 16px -10px rgba(var(--scrim-rgb), .6); }
+:root.m .lg-toggle::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-135deg) translateY(-1px); }
+:root.m .map-legend.open .lg-toggle::after { transform: rotate(45deg) translateY(-2px); }
+:root.m .map-legend:not(.open) .lg-body { display: none; }
+:root.m .map-legend.open { top: 8px; right: 8px; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 8px; pointer-events: none; }
+:root.m .map-legend.open > * { pointer-events: auto; }
+:root.m .map-legend.open .lg-body { flex: 0 1 auto; min-height: 0; width: min(360px, 100%); overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px; background: var(--glass-strong); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--float); }
+:root.m .lg-items { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 6px; }
+:root.m .lg-item { min-height: 38px; padding: 2px 6px; font-size: 13.5px; }
+:root.m .lg-item .dot { width: 10px; height: 10px; margin-right: 7px; }
+:root.m .lg-item small { font-size: 12.5px; }
+:root.m .lg-ramp { font-size: 13px; }
+:root.m .lg-cap { margin-top: 6px; font-size: 12.5px; line-height: 1.5; }
+:root.m body[data-mview=map] .map-credit { margin: 6px calc(14px + var(--m-sr)) 0 calc(14px + var(--m-sl)); font-size: 11.5px; line-height: 1.45; }
+:root.m body[data-mview=map] .ov:not([data-panel=none]) .map-credit { display: none; }
+:root.m .lg-credit { margin: 8px 0 0; padding-top: 6px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.5; color: var(--muted); }
+:root.m .lg-credit a { color: var(--ink-2); }
+:root.m body[data-mview=map] .context-card { flex: 0 0 auto; height: var(--panel-h, 54%); min-height: 0; margin: 0; border-width: 1px 0 0; border-radius: 22px 22px 0 0; box-shadow: 0 -12px 30px -20px rgba(var(--scrim-rgb), .7); overflow-y: auto; overscroll-behavior: contain; }
+:root.m .ov[data-panel=none] .context-card { display: none; }
+:root.m .ov[data-panel=peek] { --panel-h: 132px; }
+:root.m .ov[data-panel=peek] .context-card { overflow: hidden; }
+:root.m .ov[data-panel=half] { --panel-h: 54%; }
+:root.m .ov[data-panel=full] .map-card { flex: 0 0 46%; }
+:root.m .ov[data-panel=full] .context-card { position: absolute; z-index: 6; inset: 0; height: auto; border-radius: 0; border-top: 0; }
+:root.m body[data-mview=map] .crumbs { position: sticky; top: 0; flex-wrap: wrap; gap: 0 4px; min-height: 66px; padding: 18px calc(6px + var(--m-sr)) 6px calc(14px + var(--m-sl)); font-size: 14px; touch-action: none; cursor: grab; }
+:root.m .m-grab { position: absolute; top: 7px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: var(--line-2); pointer-events: none; }
+:root.m .crumbs button:not(.icon-btn) { min-height: 42px; padding: 4px 3px; }
+:root.m .crumbs .icon-btn { width: 44px; height: 44px; }
+:root.m .m-size { margin-left: auto; }
+:root.m .crumbs .crumb-close { margin-left: 0; }
+:root.m .m-size svg { width: 20px; height: 20px; }
+
+/* details (panel under the map, and the sheet on the analysis page) */
+:root.m .pd-head { padding: 12px 16px 10px; }
+:root.m .pd-meta { font-size: 12.5px; }
+:root.m .pd-title { font-size: 21px; }
+:root.m .pd-count { font-size: 14.5px; }
+:root.m .pd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root.m .pd-stats > div { padding: 9px 14px; }
+:root.m .pd-stats dt { font-size: 12.5px; }
+:root.m .pd-stats dd { font-size: 16px; }
+:root.m .pd-stats dd small { font-size: 12.5px; }
+:root.m .pd-sub { padding: 8px 16px; font-size: 13px; }
+:root.m :is(.pd-seats, .pd-winners, .dd-cands, .dd-ballots) { padding: 12px 16px; }
+:root.m :is(.pd, .dd) h4 { margin-bottom: 8px; font-size: 15.5px; }
+:root.m :is(.pd, .dd) h4 small { font-size: 12.5px; }
+:root.m .pd-seats li { grid-template-columns: auto minmax(0, 1fr) 60px auto; min-height: 34px; font-size: 14.5px; }
+:root.m .pd-seats li b { font-size: 14.5px; }
+:root.m .pd-check { font-size: 12.5px; }
+:root.m .pd-list li > button, :root.m .pd-list li:not(:has(button)) { grid-template-columns: 46px auto minmax(0, 1fr) auto; min-height: 58px; font-size: 14.5px; }
+:root.m .pd-list .no { font-size: 13px; }
+:root.m .who small { font-size: 12.5px; }
+:root.m .num { font-size: 14.5px; }
+:root.m .num small { font-size: 12.5px; }
+:root.m .pd-foot { padding: 10px 16px 16px; font-size: 12.5px; }
+:root.m .dd .zone { font-size: 13px; }
+:root.m .winner-card b { font-size: 18px; }
+:root.m .winner-card > small, :root.m .winner-card span { font-size: 13.5px; }
+:root.m .winner-card strong { font-size: 24px; }
+:root.m .runner-up .who b { font-size: 15.5px; }
+:root.m .runner-up .gap small { font-size: 12.5px; }
+:root.m .dd-actions { gap: 8px; }
+:root.m .dd-actions .ghost-btn { min-height: 44px; padding: 6px 14px; font-size: 14px; }
+:root.m .cand-list li { min-height: 52px; font-size: 14.5px; }
+:root.m .cand-list .rk { font-size: 13px; }
+:root.m .ballots { font-size: 14px; }
+:root.m .ballots > div small { font-size: 12.5px; }
+:root.m .data-note { font-size: 13px; }
+
+/* search and filters: panels between the top of the screen and the tab bar */
+:root.m .sidebar { position: fixed; z-index: 60; inset: 0 0 var(--m-bottom) 0; width: auto; display: none; flex-direction: column; gap: 16px; padding: calc(6px + var(--m-st)) calc(14px + var(--m-sr)) 22px calc(14px + var(--m-sl)); background: var(--surface); border: 0; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; }
+:root.m body:is(.m-panel-search, .m-panel-menu) .sidebar { display: flex; animation: m-panel-in .22s cubic-bezier(.2, .7, .2, 1); }
+@keyframes m-panel-in { from { opacity: 0; transform: translateY(16px); } }
+:root.m .sidebar :is(.side-head, .primary-nav) { display: none; }
+:root.m body.m-panel-search .sidebar > :not(.m-panel-head, .search-block) { display: none; }
+:root.m body.m-panel-menu .sidebar .search-block { display: none; }
+:root.m .m-panel-head { position: sticky; top: calc(-6px - var(--m-st)); z-index: 3; display: flex; align-items: center; gap: 10px; min-height: 56px; margin: 0 -4px; padding: var(--m-st) 0 0; background: var(--surface); }
+:root.m .m-panel-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 21px; font-weight: 700; }
+:root.m .m-panel-head .icon-btn { width: 44px; height: 44px; }
+:root.m .search-block { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+:root.m .search-block .side-label { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+:root.m .search-wrap { display: flex; flex-direction: column; min-height: 0; }
+:root.m .search-wrap:has(> .search-results:not([hidden])) { flex: 1 1 auto; }
+:root.m #search { min-height: 52px; padding: 10px 14px 10px 46px; border-width: 1.5px; border-radius: 14px; font-size: 16px; }
+:root.m .search-icon { left: 15px; top: 16px; width: 20px; height: 20px; }
+:root.m .search-results { position: static; flex: 1 1 auto; min-height: 0; max-height: none; margin-top: 6px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; }
+:root.m .sr { min-height: 60px; padding: 9px 4px; border-radius: 0; border-bottom: 1px solid var(--rule-soft); }
+:root.m .sr-main b { font-size: 15.5px; }
+:root.m .sr-main small { font-size: 13px; }
+:root.m .sr-kind { padding: 1px 9px; font-size: 12px; }
+:root.m .sr-empty { margin: 14px 4px; font-size: 14.5px; line-height: 1.6; }
+:root.m .search-wrap:has(> .search-results:not([hidden])) + .m-examples { display: none; }
+:root.m .m-examples { display: grid; gap: 12px; padding-top: 6px; }
+:root.m .m-examples p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+:root.m .m-examples .ex { display: flex; flex-wrap: wrap; gap: 8px; }
+:root.m .m-examples button { min-height: 42px; padding: 0 15px; border: 1px solid var(--line-2); border-radius: 99px; background: var(--wash); color: var(--ink); font-size: 14.5px; }
+:root.m #filters { order: 1; gap: 12px; }
+:root.m #filters > .side-label { font-size: 15px; font-weight: 700; }
+:root.m .field { gap: 6px; font-size: 14px; }
+:root.m .field select { min-height: 50px; border-radius: 12px; font-size: 16px; }
+:root.m .side-actions { display: contents; }
+:root.m .clear-all { order: 2; min-height: 50px; border-radius: 12px; font-size: 15px; }
+:root.m .m-settings { order: 3; display: grid; gap: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+:root.m .side-actions .ghost-btn { order: 4; min-height: 50px; justify-content: flex-start; gap: 10px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 12px; font-size: 15px; color: var(--ink); }
+:root.m .m-set { display: grid; gap: 8px; }
+:root.m .m-set > .side-label { font-size: 15px; font-weight: 700; }
+:root.m .m-theme { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; gap: 4px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--wash); }
+:root.m .m-theme button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 60px; padding: 6px 4px; border: 0; border-radius: 10px; background: none; color: var(--ink-2); font-size: 13.5px; line-height: 1.25; text-align: center; }
+:root.m .m-theme button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+:root.m .m-theme button[aria-checked=true] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(var(--scrim-rgb), .12), 0 6px 14px -10px rgba(var(--scrim-rgb), .5); }
+:root.m .m-data { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 52px; padding: 6px 6px 6px 14px; border: 1px solid var(--line-2); border-radius: 12px; font-size: 14px; color: var(--ink-2); }
+:root.m .m-data b { color: var(--ink); font-weight: 600; }
+:root.m .m-data .ghost-btn { flex: none; min-height: 44px; border: 1px solid var(--line-2); font-size: 14px; color: var(--ink); }
+:root.m .m-data .ghost-btn.is-loading svg { animation: spin .9s linear infinite; }
+:root.m .m-toast { pointer-events: none; position: fixed; z-index: 90; left: 50%; bottom: calc(var(--m-bottom) + 14px); width: max-content; max-width: calc(100vw - 32px); transform: translateX(-50%); padding: 11px 16px; border-radius: 14px; background: var(--inv); color: var(--inv-ink); font-size: 14px; line-height: 1.45; box-shadow: var(--float); animation: rise-in .22s ease-out; }
+:root.m .m-toast.is-failed { background: #b91c1c; color: #fff; }
+
+/* sheets: chart picker, map colouring, analysis details */
+:root.m .sheet-panel { max-height: 90dvh; padding-bottom: 0; border-radius: 22px 22px 0 0; }
+:root.m .sheet-head { min-height: 66px; padding: 20px 8px 10px 16px; touch-action: none; }
+:root.m .sheet-head h2 { font-size: 17px; }
+:root.m .sheet-head .icon-btn { width: 44px; height: 44px; }
+:root.m .sheet-back { min-height: 44px; font-size: 14px; }
+:root.m .grab { top: 8px; width: 44px; height: 5px; margin-left: -22px; }
+:root.m .sheet-body { padding-bottom: calc(18px + var(--m-sb)); }
+:root.m .m-pick { list-style: none; margin: 0; padding: 6px 10px 4px; display: grid; gap: 6px; }
+:root.m .m-pick-group { margin: 12px 8px 2px; font-size: 13px; font-weight: 600; color: var(--muted); }
+:root.m .m-pick button { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; align-items: center; width: 100%; min-height: 60px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; }
+:root.m .m-pick button[aria-current=true] { border-color: var(--ink); background: var(--wash); box-shadow: inset 0 0 0 1px var(--ink); }
+:root.m .m-pick .n { grid-row: span 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--inv) linear-gradient(180deg, var(--inv-top), var(--inv)); color: var(--inv-ink); font-size: 14px; font-weight: 700; }
+:root.m .m-pick .sw { grid-row: span 2; width: 32px; height: 32px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--dot-ring); }
+:root.m .m-pick b { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
+:root.m .m-pick small { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
+/* chart tooltip: on a phone a tap opens it as a card above the tab bar, with the chart's action as a button */
+:root.m .chart-tip { left: calc(10px + var(--m-sl)) !important; right: calc(10px + var(--m-sr)); top: auto !important; bottom: calc(var(--m-bottom) + 10px); max-width: none; max-height: 48vh; overflow-y: auto; padding: 12px 52px 12px 14px; border-radius: var(--r-lg); font-size: 14px; pointer-events: auto; animation: rise-in .2s ease-out; }
+:root.m .chart-tip b { font-size: 15.5px; }
+:root.m .chart-tip small { font-size: 13px; }
+:root.m .chart-tip .tt-row { padding: 2px 0; }
+:root.m .tip-close { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: none; color: var(--ink-2); }
+:root.m .tip-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+:root.m .tip-act { display: flex; align-items: center; justify-content: center; width: calc(100% + 38px); min-height: 44px; margin: 10px 0 0; padding: 6px 14px; border: 0; border-radius: 12px; background: var(--inv) linear-gradient(180deg, var(--inv-top), var(--inv)); color: var(--inv-ink); font-size: 14.5px; font-weight: 600; }
+
+/* analysis: one chart at a time, picked from a bar that stays at the top while the chart scrolls */
+:root.m .an { gap: 10px; }
+:root.m .an-nav { position: sticky; top: calc(-1 * var(--m-gap)); z-index: 6; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; align-items: center; margin: calc(-1 * var(--m-gap)) calc(-1 * var(--m-gap) - var(--m-sr)) 0 calc(-1 * var(--m-gap) - var(--m-sl)); padding: 8px calc(10px + var(--m-sr)) 8px calc(10px + var(--m-sl)); background: var(--glass-strong); border-bottom: 1px solid var(--line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+:root.m .an-step { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); color: var(--ink); }
+:root.m .an-step svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+:root.m .an-step:disabled { opacity: .35; }
+:root.m .an-pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 48px; padding: 4px 12px 4px 6px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; }
+:root.m .an-pick .n { display: grid; place-items: center; min-width: 40px; height: 32px; padding: 0 6px; border-radius: 10px; background: var(--inv) linear-gradient(180deg, var(--inv-top), var(--inv)); color: var(--inv-ink); font-size: 13px; font-weight: 700; }
+:root.m .an-pick b { min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root.m .an-pick::after { content: ''; width: 8px; height: 8px; margin: -4px 4px 0 0; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+:root.m .an-body, :root.m .an-single { gap: 10px; }
+:root.m .chart-card .card-head { padding: 14px 14px 6px; }
+:root.m .chart-card h2 { font-size: 17.5px; line-height: 1.4; }
+:root.m .chart-q { margin-top: 6px; font-size: 14px; line-height: 1.6; }
+:root.m .chart-ctl { flex-direction: column; align-items: stretch; gap: 12px; padding: 10px 14px 6px; }
+:root.m .ctl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+:root.m .chart-ctl .ctl-label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+:root.m .chart-ctl .seg { display: flex; width: 100%; border-radius: 12px; }
+:root.m .chart-ctl .seg button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 6px; font-size: 14px; }
+:root.m .chart-ctl select { width: 100%; min-height: 46px; font-size: 16px; border-radius: 12px; }
+:root.m .cmp-count { grid-column: 1 / -1; font-size: 13.5px; }
+:root.m .cmp-tags { grid-column: 1 / -1; gap: 8px; }
+:root.m .cmp-tags .chip { min-height: 40px; }
+:root.m .chart-box { flex: none; height: clamp(320px, 60svh, 560px); min-height: 0; margin: 6px 4px 0; }
+:root.m .chart-box.scroll { height: auto; overflow: visible; }
+:root.m .chart-box.scroll svg { position: static; }
+:root.m .chart-box.html { height: auto; overflow: visible; }
+:root.m .table-view { flex: none; max-height: 70svh; margin: 6px 10px 0; }
+:root.m .table-view table { font-size: 14px; }
+:root.m .table-view th:first-child, :root.m .table-view td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+:root.m .table-view thead th:first-child { z-index: 2; background: var(--wash); }
+:root.m .chart-foot { display: grid; gap: 10px; padding: 8px 14px 14px; font-size: 13px; }
+:root.m .chart-foot .tbl-toggle { justify-self: start; min-height: 44px; padding: 0 16px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; }
+:root.m .m-howto { border-top: 1px solid var(--line); padding-top: 4px; }
+:root.m .m-howto summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--accent); cursor: pointer; list-style: none; }
+:root.m .m-howto summary::-webkit-details-marker { display: none; }
+:root.m .m-howto summary::after { content: ''; width: 7px; height: 7px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+:root.m .m-howto[open] summary::after { margin-top: 3px; transform: rotate(-135deg); }
+:root.m .m-howto > div { padding: 2px 0 6px; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
+:root.m .m-brush { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--mark); font-size: 14px; color: var(--ink); }
+:root.m .m-brush .tbl-toggle { min-height: 40px; }
+:root.m .heat-wrap { padding: 4px 0 8px; }
+:root.m .heat { font-size: 13.5px; }
+:root.m .heat :is(thead, tbody) th:first-child { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 6px 0 8px -6px rgba(var(--scrim-rgb), .25); }
+:root.m .heat tbody th button { min-height: 46px; padding-left: 10px; font-size: 14px; }
+:root.m .heat td :is(button, span) { min-height: 46px; }
+:root.m .heat thead th { min-width: 76px; }
+:root.m .m-scroll-hint { display: flex; align-items: center; gap: 6px; margin: 0 14px; font-size: 13px; color: var(--muted); }
+:root.m .m-scroll-hint svg { position: static; flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+:root.m .heat-detail { padding: 0 14px 14px; }
+:root.m .prov-bars button { grid-template-columns: minmax(96px, 1.2fr) minmax(50px, 1fr) 58px; min-height: 44px; font-size: 14px; }
+:root.m .cmp { padding: 6px 14px 14px; }
+:root.m .cmp-metric h4 { font-size: 15px; }
+:root.m .cmp-row { grid-template-columns: minmax(92px, 1.1fr) minmax(60px, 1fr) 62px; min-height: 32px; font-size: 14px; }
+:root.m .cmp-stack { grid-template-columns: minmax(92px, 1.1fr) minmax(0, 1.6fr); font-size: 14px; }
+:root.m .cmp-stack small { font-size: 12.5px; }
+:root.m .brush-list li button { min-height: 56px; }
+:root.m .axis text { font-size: 12.5px; }
+:root.m .empty-state { margin: 14px; padding: 18px; font-size: 14.5px; }
+
+/* the sources dialog fills the screen */
+:root.m .sources-dialog { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
+:root.m .dialog-head { min-height: 60px; padding: calc(8px + var(--m-st)) calc(8px + var(--m-sr)) 8px calc(16px + var(--m-sl)); }
+:root.m .dialog-head h2 { font-size: 18px; }
+:root.m .dialog-head .icon-btn { width: 44px; height: 44px; }
+:root.m .dialog-body { padding: 4px calc(16px + var(--m-sr)) calc(24px + var(--m-sb)) calc(16px + var(--m-sl)); font-size: 15px; }
+:root.m .dialog-body h3 { font-size: 16.5px; }
+:root.m .dialog-body small { font-size: 13px; }
+
+/* wider phones and small tablets in portrait */
+@media (min-width: 600px) {
+  :root.m .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  :root.m .kpi:nth-child(-n+2) { border-bottom: 0; }
+  :root.m .kpi:nth-child(2) { border-right: 1px solid var(--line); }
+  :root.m .party-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root.m .m-map-cta .mini { width: 110px; }
+}
+@media (min-width: 760px) {
+  :root.m .party-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+/* panels keep a readable width on small tablets */
+@media (min-width: 600px) and (orientation: portrait) {
+  :root.m .sidebar { padding-left: max(24px, calc(50vw - 300px)); padding-right: max(24px, calc(50vw - 300px)); }
+}
+/* held sideways: the tab bar becomes a rail on the left, and the map sits beside its details */
+@media (orientation: landscape) {
+  :root.m { --m-rail: 84px; --m-tab: 0px; }
+  :root.m .main { padding-bottom: 0; padding-left: calc(var(--m-rail) + var(--m-sl)); }
+  :root.m .topbar { padding-top: calc(4px + var(--m-st)); padding-bottom: 4px; padding-left: 14px; }
+  :root.m .m-tabbar { top: 0; right: auto; width: calc(var(--m-rail) + var(--m-sl)); height: auto; grid-template-columns: none; grid-auto-rows: minmax(0, 1fr); align-content: center; padding: calc(4px + var(--m-st)) 0 calc(4px + var(--m-sb)) var(--m-sl); border-top: 0; border-right: 1px solid var(--line); box-shadow: 8px 0 24px -16px rgba(var(--scrim-rgb), .55); }
+  :root.m .m-tab { gap: 2px; padding: 2px; font-size: 11.5px; }
+  :root.m .m-tab .ic { width: 52px; height: 28px; }
+  :root.m .sidebar { inset: 0 0 0 calc(var(--m-rail) + var(--m-sl)); }
+  :root.m .m-toast { bottom: calc(14px + var(--m-sb)); left: calc(50% + var(--m-rail) / 2); }
+  :root.m .chart-tip { left: calc(var(--m-rail) + 10px + var(--m-sl)) !important; bottom: calc(10px + var(--m-sb)); }
+  :root.m .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  :root.m .kpi:nth-child(-n+2) { border-bottom: 0; }
+  :root.m .kpi:nth-child(2) { border-right: 1px solid var(--line); }
+  :root.m .party-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  :root.m body[data-mview=map] .ov { flex-direction: row; }
+  :root.m body[data-mview=map] .context-card, :root.m .ov:is([data-panel=peek], [data-panel=half], [data-panel=full]) .context-card { position: static; flex: 0 0 min(46%, 420px); height: auto; margin: 6px calc(8px + var(--m-sr)) 6px 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow-y: auto; }
+  :root.m .ov[data-panel=full] .map-card { flex: 1 1 auto; }
+  :root.m .m-grab, :root.m .m-size { display: none; }
+  :root.m body[data-mview=map] .crumbs { min-height: 0; padding-top: 6px; cursor: auto; touch-action: auto; }
+  :root.m .chart-box { height: max(300px, calc(100dvh - 120px)); }
+  :root.m .sheet-panel { left: auto; right: 0; top: 0; width: min(480px, 100vw); max-height: none; border-radius: 22px 0 0 22px; }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 @media (forced-colors: active) { .hex polygon { stroke: CanvasText; } .dot { forced-color-adjust: none; } }
