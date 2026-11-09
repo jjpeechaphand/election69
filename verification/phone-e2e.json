@@ -1,0 +1,66 @@
+{
+  "started": "2026-11-09T17:59:55.308Z",
+  "steps": [
+    {
+      "name": "Summary: slim top bar with the flags top right, five tabs at the bottom, all ten party cards in two columns",
+      "ms": 655
+    },
+    {
+      "name": "Party card: a tap highlights the party; the filters tab counts it; the House dims the others",
+      "ms": 868
+    },
+    {
+      "name": "Map: a full-screen map; a province opens with its constituencies above a panel; a constituency opens in the panel",
+      "ms": 3404
+    },
+    {
+      "name": "Back button: constituency → province → map of Thailand → summary, instead of leaving the site",
+      "ms": 2139
+    },
+    {
+      "name": "Colour key and colourings: the key opens over the map with the full credit; a sheet explains all five colourings",
+      "ms": 2349
+    },
+    {
+      "name": "Search: its own tab and panel, a 16 px field (no zoom on iPhone), examples; a result opens on the map",
+      "ms": 1952
+    },
+    {
+      "name": "Filters: a panel with region, province and party (16 px menus), the theme, the data status and Clear All",
+      "ms": 2382
+    },
+    {
+      "name": "Analysis: one chart at a time; previous / next and a list of all seven charts with their questions",
+      "ms": 2178
+    },
+    {
+      "name": "Analysis tap: the first tap opens the tooltip as a card above the tab bar; its button does what a click does",
+      "ms": 1914
+    },
+    {
+      "name": "Analysis details: a constituency opens in a sheet that can be dragged down to close",
+      "ms": 1976
+    },
+    {
+      "name": "Small phone 360×780 and 375×667: no sideways scrolling, panel and map share the screen",
+      "ms": 3411
+    },
+    {
+      "name": "Held sideways (844×390): the tabs become a rail on the left and the map sits beside its details",
+      "ms": 1783
+    },
+    {
+      "name": "Phones held sideways wider than 900 px (932×430) still get the phone layout; a desktop window of the same size does not",
+      "ms": 948
+    },
+    {
+      "name": "Desktop keeps its layout; resizing a window across 900 px switches layouts both ways",
+      "ms": 1739
+    }
+  ],
+  "errors": [],
+  "screenshots": "tests\\screenshots\\phone-2026-11-09T17-59-55-306Z",
+  "browser": "156.0.8078.81",
+  "passed": true,
+  "finished": "2026-11-09T18:00:23.864Z"
+}
