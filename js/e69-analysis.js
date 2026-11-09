@@ -120,15 +120,42 @@
   }
   function cardHtml(id) {
     const c = CH[id], table = tableOn.has(id) && c.table, scroll = c.scroll?.();
+    if (E.isM()) return phoneCardHtml(id, c, table, scroll);
     return '<section class="card chart-card" id="card-' + id + '" aria-labelledby="h-' + id + '"><div class="card-head"><div><h2 id="h-' + id + '">' + c.title() + '</h2><p class="chart-q">' + c.q() + '</p></div></div>' +
       '<div class="chart-ctl">' + c.controls() + '</div>' +
       (table ? '<div class="table-view" id="box-' + id + '">' + c.table() + '</div>' : '<div class="chart-box' + (scroll ? ' scroll' : '') + (c.html ? ' html' : '') + '" id="box-' + id + '"></div>') +
       '<div class="chart-foot">' + c.foot() + (c.table ? ' <button type="button" class="tbl-toggle" data-act="an-table" data-v="' + id + '">' + (table ? t('กลับไปดูกราฟ', 'Back to chart') : t('ดูเป็นตาราง', 'View as table')) + '</button>' : '') + '</div></section>';
   }
+  /* Phones: one chart at a time, chosen from a bar that stays at the top (previous, the chart's name with its number,
+     next; the name opens a list of all seven with their questions). Under each chart: the selection (if any), the
+     table view as a button, and how to read the chart folded away. Words for the mouse ("click") say "tap". */
+  const tapWords = s => E.isM() ? s.replace(/คลิก/g, 'แตะ').replace(/\bClick\b/g, 'Tap').replace(/\bclick\b/g, 'tap') : s;
+  const ARROW = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (d < 0 ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6') + '"/></svg>';
+  function phoneNav(id) {
+    const list = MOBILE_TABS(), i = Math.max(0, list.findIndex(x => x[0] === id));
+    return '<nav class="an-nav" aria-label="' + t('เลือกกราฟ', 'Choose a chart') + '">' +
+      '<button type="button" class="an-step" data-act="an-step" data-v="-1"' + (i <= 0 ? ' disabled' : '') + ' aria-label="' + t('กราฟก่อนหน้า', 'Previous chart') + '">' + ARROW(-1) + '</button>' +
+      '<button type="button" class="an-pick" data-act="an-picker" aria-haspopup="dialog" aria-label="' + esc(t('กราฟที่ ' + (i + 1) + ' จาก ' + list.length + ': ' + list[i][1] + ' · แตะเพื่อเลือกกราฟอื่น', 'Chart ' + (i + 1) + ' of ' + list.length + ': ' + list[i][1] + ' · tap to choose another')) + '"><span class="n">' + (i + 1) + '/' + list.length + '</span><b>' + list[i][1] + '</b></button>' +
+      '<button type="button" class="an-step" data-act="an-step" data-v="1"' + (i >= list.length - 1 ? ' disabled' : '') + ' aria-label="' + t('กราฟถัดไป', 'Next chart') + '">' + ARROW(1) + '</button></nav>';
+  }
+  function phoneCardHtml(id, c, table, scroll) {
+    const brush = id === 'rivals' ? brushFoot() : '', foot = brush ? c.foot().replace(brush, '') : c.foot();
+    return '<section class="card chart-card" id="card-' + id + '" aria-labelledby="h-' + id + '"><div class="card-head"><div><h2 id="h-' + id + '">' + c.title() + '</h2><p class="chart-q">' + c.q() + '</p></div></div>' +
+      '<div class="chart-ctl">' + c.controls() + '</div>' +
+      (table ? '<div class="table-view" id="box-' + id + '">' + c.table() + '</div>' : '<div class="chart-box' + (scroll ? ' scroll' : '') + (c.html ? ' html' : '') + '" id="box-' + id + '"></div>') +
+      '<div class="chart-foot">' + (brush ? '<div class="m-brush">' + tapWords(brush) + '</div>' : '') +
+      (c.table ? '<button type="button" class="tbl-toggle" data-act="an-table" data-v="' + id + '">' + (table ? t('กลับไปดูกราฟ', 'Back to chart') : t('ดูเป็นตาราง', 'View as table')) + '</button>' : '') +
+      '<details class="m-howto"><summary>' + t('วิธีอ่านกราฟนี้', 'How to read this chart') + '</summary><div>' + tapWords(foot) + '</div></details></div></section>';
+  }
+  const chartsPickerHtml = () => {
+    const cur = visibleCharts()[0];
+    return '<ul class="m-pick">' + MOBILE_TABS().map(([id, label], i) => '<li><button type="button" data-act="an-set" data-k="mobileChart" data-v="' + id + '"' + (id === cur ? ' aria-current="true"' : '') + '><span class="n">' + (i + 1) + '</span><b>' + label + '</b><small>' + CH[id].title() + '</small></button></li>').join('') + '</ul>';
+  };
   // `continuing` is true when the analysis page was already on screen before this render.
   let renderedLayout = '';
   A.render = function (continuing) {
     D = E.D;
+    if (E.isM()) E.hideChartTip();   // a tooltip opened by a tap belongs to the drawing being replaced
     const s = S(), single = singleMode(), vis = visibleCharts(), wide = matchMedia('(min-width: 1280px)').matches;
     renderedSingle = single;
     const tabs = single ? MOBILE_TABS().map(([id, label]) => '<button type="button" role="tab" aria-selected="' + (vis[0] === id) + '" data-act="an-set" data-k="mobileChart" data-v="' + id + '">' + label + '</button>').join('')
@@ -139,10 +166,10 @@
     // Same charts as before (a party highlighted, a sort or filter changed): the old drawing is kept on top as a
     // ghost and dissolves once the new one is drawn underneath, instead of the charts blanking and redrawing.
     // A different set of charts (another tab, a detail panel opening) rises into place instead.
-    const layout = [single, vis.join(), detail ? s.anDetail.kind + ':' + (s.anDetail.id || '') : '', [...tableOn].join(), E.lang()].join('|');
+    const layout = [single, vis.join(), detail ? s.anDetail.kind + ':' + (s.anDetail.id || '') : '', [...tableOn].join(), E.lang(), E.isM()].join('|');
     const old = continuing && !calm() ? page.querySelector('.an > .an-body') : null, same = layout === renderedLayout;
     renderedLayout = layout;
-    page.innerHTML = '<div class="an"><div class="an-tabs' + (single ? ' many' : '') + '" role="tablist" aria-label="' + t('มุมมองการวิเคราะห์', 'Analysis views') + '">' + tabs + '</div>' +
+    page.innerHTML = '<div class="an">' + (E.isM() ? phoneNav(vis[0]) : '<div class="an-tabs' + (single ? ' many' : '') + '" role="tablist" aria-label="' + t('มุมมองการวิเคราะห์', 'Analysis views') + '">' + tabs + '</div>') +
       '<div class="an-body' + (detail ? ' with-detail' : '') + '"><div class="' + (vis.length > 1 ? 'an-grid' : 'an-single') + '">' + vis.map(cardHtml).join('') + '</div>' + (detail ? '<aside class="card an-detail" id="anDetail" aria-label="' + t('รายละเอียด', 'Details') + '">' + detail + '</aside>' : '') + '</div></div>';
     page.scrollTop = keepScroll;
     const ghost = old && same ? keepAsGhost(old) : null;
@@ -573,13 +600,16 @@
     const ramp = E.ramps().teal, color = v => finite(v) ? ramp(0.04 + 0.86 * v / max) : C().seatBase;   // a party-free hue (see RAMPS in e69-app.js)
     // Dark mode's ramp runs dark to bright, so the label colour follows each cell's own brightness there.
     const ink = v => E.isDark() ? E.inkOn(color(v)) : finite(v) && v / max > 0.55 ? '#fff' : '#102631';
-    el.innerHTML = '<div class="heat-wrap"><table class="heat"><thead><tr><th scope="col"><span class="heat-corner">' + t('ภูมิภาค \\ พรรค', 'Region \\ party') + '</span></th>' + parties.map(p => '<th scope="col"><button type="button" data-act="party" data-v="' + esc(p) + '" aria-pressed="' + (s.party === p) + '" class="' + (s.party === p ? 'on' : '') + '">' + E.dot(p) + esc(p) + '</button></th>').join('') + '</tr></thead><tbody>' +
+    el.innerHTML = (E.isM() ? '<p class="m-scroll-hint">' + t('ปัดตารางเพื่อดูพรรคอื่นทางขวา', 'Swipe the table to see more parties') + ' <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></p>' : '') + '<div class="heat-wrap"><table class="heat"><thead><tr><th scope="col"><span class="heat-corner">' + t('ภูมิภาค \\ พรรค', 'Region \\ party') + '</span></th>' + parties.map(p => '<th scope="col"><button type="button" data-act="party" data-v="' + esc(p) + '" aria-pressed="' + (s.party === p) + '" class="' + (s.party === p ? 'on' : '') + '">' + E.dot(p) + esc(p) + '</button></th>').join('') + '</tr></thead><tbody>' +
       all.map(g => '<tr class="' + (g.name === '__all' ? 'nat' : '') + (s.region === g.name ? ' on' : '') + '"><th scope="row">' + (g.name === '__all' ? t('ทั้งประเทศ', 'Nationwide') : '<button type="button" data-act="an-region" data-v="' + esc(g.name) + '" aria-pressed="' + (s.region === g.name) + '">' + esc(E.rname(g.name)) + ' <small>' + g.count + t(' เขต', '') + '</small></button>') + '</th>' +
         parties.map(p => { const h = heatValue(g, p); return '<td class="' + (s.party === p ? 'colon' : '') + '" style="background:' + color(h.v) + ';color:' + ink(h.v) + '">' + (g.name === '__all' ? '<span>' + h.text + '</span>' : '<button type="button" data-act="an-cell" data-v="' + esc(g.name) + '" data-p="' + esc(p) + '" title="' + esc(E.rname(g.name) + ' · ' + p + ': ' + h.text + ' (' + fmt(h.num) + ' / ' + fmt(h.den) + ')') + '">' + h.text + '</button>') + '</td>'; }).join('') + '</tr>').join('') +
       '</tbody></table></div>' + regionDetail();
+    // Phones: the "swipe for more parties" hint only when the table is wider than the screen.
+    const hint = el.querySelector('.m-scroll-hint'), wrap = el.querySelector('.heat-wrap');
+    if (hint && wrap.scrollWidth <= wrap.clientWidth + 1) hint.remove();
   }
   function regionDetail() {
-    const s = S(); if (!s.region) return '<p class="caveat heat-detail">' + t('เลือกภูมิภาค (คลิกชื่อแถวหรือช่อง) เพื่อดูรายจังหวัด', 'Pick a region (row header or cell) to see its provinces') + '</p>';
+    const s = S(); if (!s.region) return '<p class="caveat heat-detail">' + tapWords(t('เลือกภูมิภาค (คลิกชื่อแถวหรือช่อง) เพื่อดูรายจังหวัด', 'Pick a region (row header or cell) to see its provinces')) + '</p>';
     const g = D.regions.find(r => r.name === s.region); if (!g) return '';
     const m = s.heatMetric, party = s.party || g.seats[0]?.party;
     const provs = g.provinces.map(code => D.provinceByCode.get(code)).map(p => ({ p, h: heatValue(p, party) })).sort((a, b) => (b.h.v || 0) - (a.h.v || 0));
@@ -772,7 +802,8 @@
     const rows = b.ids.map(id => D.byId.get(id)).filter(Boolean).sort((p, q) => p.marginPct - q.marginPct);
     return '<p class="caveat" style="padding:0 14px">' + rows.length + t(' เขต เรียงตามส่วนต่างน้อยไปมาก', ' constituencies, smallest margin first') + '</p><ol class="brush-list">' + rows.map(r => '<li><button type="button" data-act="district" data-v="' + r.id + '"><span class="who"><b>' + esc(E.dname(r)) + '</b><small>' + E.dot(r.winnerParty) + esc(r.winnerName) + ' · ' + esc(r.winnerParty) + '</small></span><span class="num">' + fmtP(r.marginPct) + '<small>' + t('ใช้สิทธิ ', 'turnout ') + fmtP(r.turnoutPct, 1) + '</small></span></button></li>').join('') + '</ol>';
   }
-  A.sheetContent = item => item.what === 'brush' ? { title: S().brush?.label || '', html: brushListHtml() } : { title: '', html: '' };
+  A.sheetContent = item => item.what === 'brush' ? { title: S().brush?.label || '', html: brushListHtml() }
+    : item.what === 'charts' ? { title: t('เลือกกราฟ', 'Choose a chart'), html: chartsPickerHtml() } : { title: '', html: '' };
   A.showDetail = id => {
     if (matchMedia('(min-width: 1280px)').matches) E.setState({ anDetail: { kind: 'district', id } });
     else E.openSheet({ kind: 'district', id }, false);
@@ -780,7 +811,17 @@
 
   A.onAction = (act, v, el) => {
     const s = S();
-    if (act === 'an-set') { const k = el.dataset.k; let val = v; if (k === 'ballotTop') val = String(v); const patch = { [k]: val }; if (k === 'ballotMode') patch.ballotSort = v === 'party' ? 'seats' : 'abs'; E.setState(patch); }
+    if (act === 'an-set') {
+      const k = el.dataset.k, inSheet = !!el.closest('#sheet'); let val = v; if (k === 'ballotTop') val = String(v); const patch = { [k]: val }; if (k === 'ballotMode') patch.ballotSort = v === 'party' ? 'seats' : 'abs';
+      if (E.isM() && k === 'mobileChart' && inSheet) E.closeSheet();   // the chart list closes before the page redraws
+      E.setState(patch);
+      if (E.isM() && k === 'mobileChart') document.getElementById('pageAnalysis').scrollTop = 0;
+    }
+    else if (act === 'an-step') {   // phones: previous / next chart
+      const list = MOBILE_TABS().map(x => x[0]), i = list.indexOf(visibleCharts()[0]), j = Math.max(0, Math.min(list.length - 1, i + Number(v)));
+      if (j !== i) { E.setState({ mobileChart: list[j] }); document.getElementById('pageAnalysis').scrollTop = 0; }
+    }
+    else if (act === 'an-picker') E.openSheet({ kind: 'custom', what: 'charts' });
     else if (act === 'an-table') { tableOn.has(v) ? tableOn.delete(v) : tableOn.add(v); A.render(); }
     else if (act === 'brush-list') { if (matchMedia('(min-width: 1280px)').matches) E.setState({ anDetail: { kind: 'brush' } }); else E.openSheet({ kind: 'custom', what: 'brush' }); }
     else if (act === 'an-detail-close') E.setState({ anDetail: null });
