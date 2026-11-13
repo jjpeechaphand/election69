@@ -45,14 +45,14 @@
     <div class="side-actions">
       <button type="button" class="clear-all" data-act="clear-all"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Clear All</button>
       <button type="button" class="ghost-btn" data-act="sources"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span id="sourcesLabel">ที่มาข้อมูลและวิธีอ่าน</span></button>
+      <button type="button" class="m-done m-only" data-act="m-panel-close" id="mDone">แสดงผล</button>
     </div>
-    <div class="m-settings m-only" id="mSettings"></div>
   </aside>
   <div class="scrim" id="scrim" hidden></div>
   <main class="main" id="main" tabindex="-1">
     <header class="topbar">
       <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="sr-only" id="menuLabel">เมนู</span></button>
-      <button type="button" class="m-brand m-only" data-act="m-tab" data-v="summary" id="mBrand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><clipPath id="brandSlotM"><path d="M0 0h40v21H0z"/></clipPath></defs><rect class="bm-box" x="7.5" y="21" width="25" height="11.5" rx="3.2"/><g clip-path="url(#brandSlotM)"><g class="bm-card"><rect x="13" y="5.5" width="14" height="19" rx="2.4"/><path d="M16.6 10.6l6.8 6.8M23.4 10.6l-6.8 6.8"/></g></g><rect class="bm-slot" x="9.5" y="19.4" width="21" height="3" rx="1.5"/></svg></span><span class="sr-only" id="mBrandLabel">ELECTION69 · สรุปผล</span></button>
+      <button type="button" class="icon-btn m-menu-btn m-only" id="mMenuBtn" data-act="m-drawer" aria-haspopup="dialog" aria-controls="mDrawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="sr-only" id="mMenuLabel">เมนู</span></button>
       <div class="page-titles">
         <h1 id="pageTitle"></h1>
         <p class="page-sub" id="pageSub"></p>
@@ -81,6 +81,14 @@
   </main>
 </div>
 <nav class="m-tabbar m-only" id="mTabbar" aria-label="เมนูหลัก"></nav>
+<div class="m-drawer m-only" id="mDrawer" hidden>
+  <div class="m-drawer-scrim" data-act="m-drawer-close"></div>
+  <section class="m-drawer-panel" id="mDrawerPanel" role="dialog" aria-modal="true" aria-label="เมนู">
+    <div class="m-drawer-head"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><clipPath id="brandSlotM"><path d="M0 0h40v21H0z"/></clipPath></defs><rect class="bm-box" x="7.5" y="21" width="25" height="11.5" rx="3.2"/><g clip-path="url(#brandSlotM)"><g class="bm-card"><rect x="13" y="5.5" width="14" height="19" rx="2.4"/><path d="M16.6 10.6l6.8 6.8M23.4 10.6l-6.8 6.8"/></g></g><rect class="bm-slot" x="9.5" y="19.4" width="21" height="3" rx="1.5"/></svg></span><span class="brand-text"><span class="brand-word" id="mDrawerWord" data-text="ELECTION69">ELECTION<b>69</b></span><small id="mDrawerSub">ผลเลือกตั้งไทย 2569</small></span><button type="button" class="icon-btn" data-act="m-drawer-close" id="mDrawerClose"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg><span class="sr-only" id="mDrawerCloseLabel">ปิดเมนู</span></button></div>
+    <div class="m-settings" id="mSettings"></div>
+  </section>
+</div>
+<div class="lens-tag m-only" id="lensTag" aria-hidden="true" hidden></div>
 <div class="m-toast m-only" id="mToast" role="status" aria-live="polite" hidden></div>
 <div class="province-tip" id="provinceTip" hidden></div>
 <div class="chart-tip" id="chartTip" role="tooltip" hidden></div>
