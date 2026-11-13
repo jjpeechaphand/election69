@@ -1,119 +1,139 @@
 {
-  "started": "2026-11-09T18:00:24.917Z",
+  "started": "2026-11-13T05:57:41.919Z",
   "steps": [
     {
       "name": "Overview: Thai default, KPIs, 10 rich party cards with loaded photos, no audit/OCR UI",
-      "ms": 765
+      "ms": 661
     },
     {
       "name": "Hex map: 77 unique equal tiles mapped to ECT codes; labels are full names only",
-      "ms": 2561
+      "ms": 2618
     },
     {
       "name": "Bangkok tooltip: full name, 33 constituencies, weighted turnout, invalid ballots, seats; a short summary that points to the full list",
-      "ms": 1012
+      "ms": 969
     },
     {
       "name": "Tooltip opens at the pointer, follows it, and can be entered after resting",
-      "ms": 3097
+      "ms": 3161
     },
     {
       "name": "Single-constituency and multi-party provinces",
-      "ms": 1705
+      "ms": 1706
     },
     {
       "name": "Party highlight keeps complete province results and shows explicit zero",
-      "ms": 2157
+      "ms": 2203
     },
     {
       "name": "Map colourings: the two ballots are choices of their own; the province list under the House is gone",
-      "ms": 3874
+      "ms": 3838
     },
     {
       "name": "Click pins province detail; constituency drill-down; keyboard navigation",
-      "ms": 6131
+      "ms": 5968
     },
     {
       "name": "Search by combined province + number and by candidate name",
-      "ms": 2963
+      "ms": 2815
     },
     {
       "name": "English mode translates UI and uses full English province names; Clear All keeps language",
-      "ms": 1400
+      "ms": 1413
     },
     {
-      "name": "Analysis page: four primary charts with their findings, linked brushing, details on demand",
-      "ms": 9857
+      "name": "Analysis page: five tabs; the first shows the four main charts at once, each a preview with its finding in a few words",
+      "ms": 1274
+    },
+    {
+      "name": "A click on a preview opens it large with its question, finding, options and table; a bar leads back or across; Escape returns",
+      "ms": 6445
+    },
+    {
+      "name": "Highlighting a party in a large chart dissolves the old drawing into the new one and carries over to every chart",
+      "ms": 3482
+    },
+    {
+      "name": "A band of the flow chart selects its constituencies; the candidate records then rank inside the selection; a row opens beside the chart",
+      "ms": 4428
+    },
+    {
+      "name": "Building a majority (a tab of its own): who governs now, under the House — the government and the opposition with their parties and seats; the reader can still add parties up",
+      "ms": 11930
+    },
+    {
+      "name": "Votes by region, candidate records and the comparison, each on a tab of its own",
+      "ms": 7746
     },
     {
       "name": "Data refresh: icon in the top bar, last-updated time, a saved CSV edit appears in place, a broken edit keeps the old data",
-      "ms": 2678
+      "ms": 2610
     },
     {
       "name": "Colour theme: follows the device by default, menu beside the flags, a pick outlasts a reload, back to the device setting",
-      "ms": 6125
+      "ms": 6489
     },
     {
       "name": "Viewport 360x800: no horizontal overflow; province details reachable",
-      "ms": 3759
+      "ms": 3677
     },
     {
       "name": "Viewport 390x844: no horizontal overflow; province details reachable",
-      "ms": 3642
-    },
-    {
-      "name": "Viewport 430x932: no horizontal overflow; province details reachable",
       "ms": 3682
     },
     {
+      "name": "Viewport 430x932: no horizontal overflow; province details reachable",
+      "ms": 3605
+    },
+    {
       "name": "Viewport 768x1024: no horizontal overflow; province details reachable",
-      "ms": 3737
+      "ms": 3756
     },
     {
       "name": "Viewport 1366x768: no horizontal overflow; province details reachable",
-      "ms": 2882
+      "ms": 2971
     },
     {
       "name": "Viewport 1440x900: no horizontal overflow; province details reachable",
-      "ms": 4001
+      "ms": 2995
     },
     {
       "name": "Viewport 1920x1080: no horizontal overflow; province details reachable",
-      "ms": 3002
+      "ms": 2946
     },
     {
       "name": "Offline file:// entry with networking disabled",
-      "ms": 1041
+      "ms": 925
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\two-page-2026-11-09T18-00-24-915Z",
+  "screenshots": "tests\\screenshots\\two-page-2026-11-13T05-57-41-917Z",
   "labelledTilesAt1440": 77,
   "labelPxAt1440": [
     8.5,
-    10.5
+    11.5
   ],
   "sha256": {
-    "index.html": "80a936db1c2c14c342076fc272745c8b59a974881dfcff59db0204b4877f3e5c",
-    "e69.css": "b7be9cc662bbf67f00b0a847f0ec8cef65000257a2823e400c3e230be1558e8c",
-    "js/e69-app.js": "977b10f74fb7a9e5a2ac472227ba0d43e9aa61edc42de569dbe93cf12dcb5fb7",
-    "js/e69-analysis.js": "61179aa1f418d4af5dfc1cb9e9b65fc2d9bf225825939d1aa28f5542efc5f892",
+    "index.html": "7bee1f746031655d62d6d9ac36c0734d9360484cf7ec20b1a5d813f23f71cacd",
+    "e69.css": "8de71d51582a08be4812571404aeb3cddba57ce4bb3689a6847fa2b122d36766",
+    "js/e69-app.js": "c79e922c560f9e4be8827e1593be25196b7ab1520b68a99415021e729cba44e3",
+    "js/e69-analysis.js": "19862d95d654561d21f813b0031fb93cd0deeb14fe3c6ed3710c0e770c6bcbd9",
     "js/e69-data.js": "1ce736bfce4ddec56e7b3b07df0fc717193ffcebc4525771bb81fbddbd0cc1b4",
-    "js/e69-source.js": "2eeb615c0cb1ec2c3d6923c4d13ea54bf17b7d32b674dc13e77a966a021ea0d9",
+    "js/e69-source.js": "b66a6f0acf63bc385431360283d38cbba442c00c3b7f2d147da3f6f16a017522",
     "js/model.js": "cbb51070d22fdbc2d8358657e51242dec9f9208f80923b2082dfa498454a1ff5",
     "reference-data.js": "8226374f52ab9f6193c7b740077b01ff4f16ae627a514fee8a5a3fe01146965e",
-    "data/bundle.js": "1dc79b53dc7c4b5f778064dd053d20240e00e395e8d8fcab823282d359b7b6c9",
+    "data/bundle.js": "036ded00a7a6a1710cfc70616ff7666d9932382f0a62f5e297801a052c7a2bfc",
     "data/2569/candidates.csv": "1eb4c3c5c80e468e982c1689bb0b8fe8cdd13a9f8bfae798b2cca48812f82036",
     "data/2569/constituencies.csv": "d5a237812d097e1f7166cbe82dc5816cd0b4aa4d6110acbdd8d7dd99cb84a653",
-    "data/2569/election.csv": "cfd5fd3379401443f406e58a86c0f48703d7ffb3ea9cb54b9a8d9f497a26d002",
-    "data/2569/parties.csv": "a7a6a1dcba09d6b6f9c73b8a6979847211e065f65591e3e06c2403e403494b8a",
+    "data/2569/election.csv": "ca3879ea7d1ff4e9d9dec6bb6c9cb2ec9197c616e7219289ab3c40b9fd3ba53a",
+    "data/2569/parties.csv": "c1bc7f0bf84c8d041971cbc3a09e2f50d52488b6b5c49a252436c8cccf73a19a",
     "data/2569/party_list_votes.csv": "ed7e8fc9ba66fa1f9ff609521364dd3d4e9b20d8aec61fb9fa29110677f17e36",
     "data/2569/provinces.csv": "e2326c7fa253241fa879ff530d5df587153010dda86be505819b5e416baa9b58",
     "data/2569/sources.csv": "29f8bf898b674926764454777cd08d918362b27ad23a6e12d56cf4f222268630",
     "data/elections.csv": "2af33551d5cec3c7e245331ffc340f341dfab688191d88fc430ba030f23337ba",
     "vendor/d3.min.js": "f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539"
   },
-  "browser": "156.0.8078.81",
+  "browser": "157.0.8103.51",
   "passed": true,
-  "finished": "2026-11-09T18:01:35.906Z"
+  "finished": "2026-11-13T05:59:16.963Z"
 }

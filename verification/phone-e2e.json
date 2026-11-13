@@ -1,66 +1,86 @@
 {
-  "started": "2026-11-09T17:59:55.308Z",
+  "started": "2026-11-13T05:56:03.183Z",
   "steps": [
     {
-      "name": "Summary: slim top bar with the flags top right, five tabs at the bottom, all ten party cards in two columns",
-      "ms": 655
+      "name": "Summary: slim top bar (menu button left, flags right), five tabs at the bottom, all ten party cards in two columns",
+      "ms": 412
     },
     {
-      "name": "Party card: a tap highlights the party; the filters tab counts it; the House dims the others",
-      "ms": 868
+      "name": "Party card: a tap highlights the party; the search-and-filters tab counts it; the House dims the others",
+      "ms": 849
     },
     {
-      "name": "Map: a full-screen map; a province opens with its constituencies above a panel; a constituency opens in the panel",
-      "ms": 3404
+      "name": "Map: a full-screen map with nothing on top of a province; a tap opens a province above a panel; a constituency opens in the panel",
+      "ms": 3483
     },
     {
       "name": "Back button: constituency → province → map of Thailand → summary, instead of leaving the site",
-      "ms": 2139
+      "ms": 2153
     },
     {
-      "name": "Colour key and colourings: the key opens over the map with the full credit; a sheet explains all five colourings",
-      "ms": 2349
+      "name": "Focus + context: a finger held on the map opens a lens; the province under it and its neighbours grow, the rest of the country stays",
+      "ms": 6333
     },
     {
-      "name": "Search: its own tab and panel, a 16 px field (no zoom on iPhone), examples; a result opens on the map",
-      "ms": 1952
+      "name": "Lens at the edges and with motion on: a province at the edge stays whole on screen; the lens swells and melts back without a trace",
+      "ms": 11412
     },
     {
-      "name": "Filters: a panel with region, province and party (16 px menus), the theme, the data status and Clear All",
-      "ms": 2382
+      "name": "Colour key and colourings: the key opens over the map with the full credit and how the lens works; a sheet explains all five colourings",
+      "ms": 2455
     },
     {
-      "name": "Analysis: one chart at a time; previous / next and a list of all seven charts with their questions",
-      "ms": 2178
+      "name": "Search and filters share one panel: search on top (16 px, not focused, so the keyboard does not cover the filters), examples, then the filters",
+      "ms": 5057
+    },
+    {
+      "name": "Menu: the button at the top left slides a drawer in from the left with the theme, the data status and the sources; five ways to close it",
+      "ms": 7764
+    },
+    {
+      "name": "Analysis: one chart at a time; previous / next and a list of all eight charts with their questions",
+      "ms": 2252
     },
     {
       "name": "Analysis tap: the first tap opens the tooltip as a card above the tab bar; its button does what a click does",
-      "ms": 1914
+      "ms": 1908
     },
     {
-      "name": "Analysis details: a constituency opens in a sheet that can be dragged down to close",
-      "ms": 1976
+      "name": "Finishing places: one bar per party; a tap on a part of a bar names it, and its button selects those constituencies",
+      "ms": 2596
     },
     {
-      "name": "Small phone 360×780 and 375×667: no sideways scrolling, panel and map share the screen",
-      "ms": 3411
+      "name": "The House tab: the majority builder with who governs now; government and opposition as two cards; the analysis tab goes back to the chart before",
+      "ms": 8843
     },
     {
-      "name": "Held sideways (844×390): the tabs become a rail on the left and the map sits beside its details",
-      "ms": 1783
+      "name": "Candidate records: ranked rows with photos; a row opens the constituency in a sheet that can be dragged down to close",
+      "ms": 2888
+    },
+    {
+      "name": "Comparison: a search box and a province menu add constituencies; each fact is a block with the constituencies under one another",
+      "ms": 3943
+    },
+    {
+      "name": "Small phones 360×780, 375×667 and 320×568: no sideways scrolling, five tabs that fit, panel and map share the screen, the lens works",
+      "ms": 10663
+    },
+    {
+      "name": "Held sideways (844×390): the tabs become a rail on the left, the map sits beside its details, the lens and the drawer work",
+      "ms": 3687
     },
     {
       "name": "Phones held sideways wider than 900 px (932×430) still get the phone layout; a desktop window of the same size does not",
-      "ms": 948
+      "ms": 734
     },
     {
-      "name": "Desktop keeps its layout; resizing a window across 900 px switches layouts both ways",
-      "ms": 1739
+      "name": "Desktop keeps its layout (no lens, no drawer); a narrow window gets the phone layout, where a mouse drag opens the lens",
+      "ms": 4932
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\phone-2026-11-09T17-59-55-306Z",
-  "browser": "156.0.8078.81",
+  "screenshots": "tests\\screenshots\\phone-2026-11-13T05-56-03-181Z",
+  "browser": "157.0.8103.51",
   "passed": true,
-  "finished": "2026-11-09T18:00:23.864Z"
+  "finished": "2026-11-13T05:57:26.155Z"
 }

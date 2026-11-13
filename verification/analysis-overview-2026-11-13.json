@@ -1,0 +1,60 @@
+{
+  "round": "12-13 Nov 2026: four-chart overview with click-to-enlarge, finishing-places chart, majority builder on its own tab with the current government and opposition, comparison redesign, phone focus+context lens, phone menu drawer and merged search/filters panel, larger desktop type",
+  "checkedAt": "2026-11-13",
+  "browser": "Chrome 156 headless (Playwright), software raster",
+  "automatedTests": {
+    "unit": { "command": "node --test tests/data-source.test.cjs tests/two-page-data.test.cjs tests/model.test.cjs tests/methodology.test.cjs", "pass": 79, "fail": 0 },
+    "desktopE2E": { "command": "node tests/two-page.e2e.cjs", "steps": 26, "passed": true, "evidence": "verification/two-page-e2e.json" },
+    "phoneE2E": { "command": "node tests/phone.e2e.cjs", "steps": 19, "passed": true, "evidence": "verification/phone-e2e.json" }
+  },
+  "houseSides": {
+    "checkedAt": "2026-11-12",
+    "government": { "parties": 16, "seats": 293, "list": ["ภูมิใจไทย 192", "เพื่อไทย 74", "ประชาชาติ 5", "พลังประชารัฐ 5", "เศรษฐกิจ 3", "ไทยสร้างไทย 2", "เพื่อชาติไทย 2", "รวมไทยสร้างชาติ 2", "โอกาสใหม่ 1", "ทางเลือกใหม่ 1", "ไทยทรัพย์ทวี 1", "ประชาธิปไตยใหม่ 1", "มิติใหม่ 1", "รวมใจไทย 1", "รวมพลังประชาชน 1", "ใหม่ 1"] },
+    "opposition": { "parties": 5, "seats": 149, "list": ["ประชาชน 120", "ประชาธิปัตย์ 21", "ไทรวมพลัง 6", "ไทยภักดี 1", "เสรีรวมไทย 1"] },
+    "neither": { "parties": 1, "seats": 58, "list": ["กล้าธรรม 58"] },
+    "sumEqualsHouse": true,
+    "sources": ["th.wikipedia.org: คณะรัฐมนตรีไทย คณะที่ 66", "en.wikipedia.org: Second Anutin cabinet", "infoquest.co.th/2026/652234 (22 Sep 2026)", "The Standard (22 Sep 2026)", "Thai PBS", "Nation (16 Feb 2026)"],
+    "note": "Seats are counted as elected; not adjusted for later changes. Not ECT data."
+  },
+  "finishingPlaces": {
+    "seatsRanked": 400,
+    "drawn": [
+      { "party": "ภูมิใจไทย", "contested": 394, "won": 173, "second": 78, "third": 65, "fourthOrLower": 78 },
+      { "party": "ประชาชน", "contested": 399, "won": 88, "second": 140, "third": 135, "fourthOrLower": 36 },
+      { "party": "เพื่อไทย", "contested": 396, "won": 58, "second": 99, "third": 114, "fourthOrLower": 125 },
+      { "party": "กล้าธรรม", "contested": 326, "won": 56, "second": 49, "third": 22, "fourthOrLower": 199 },
+      { "party": "ประชาธิปัตย์", "contested": 398, "won": 10, "second": 23, "third": 44, "fourthOrLower": 321 }
+    ],
+    "finding": "ประชาชนติดสามอันดับแรกมากที่สุด 363 จาก 399 เขตที่ส่ง แต่ชนะ 88 · ภูมิใจไทยชนะมากที่สุด 173 จาก 394 เขตที่ส่ง"
+  },
+  "desktopTypeScale": {
+    "steps": [
+      { "from": "1366x640", "smallText": "+1px", "middle": "+0.5px", "headings": "+0px", "sidebar": "280px" },
+      { "from": "1440x700", "smallText": "+1.5px", "middle": "+1px", "headings": "+0.5px", "sidebar": "290px" },
+      { "from": "1800x900", "smallText": "+2.5px", "middle": "+2px", "headings": "+1px", "sidebar": "306px" }
+    ],
+    "unchanged": "windows narrower than 1366px or shorter than 640px, and the phone layout",
+    "layoutCheck": {
+      "sizes": ["1024x768", "1280x640", "1366x650", "1440x700", "1440x900", "1536x730", "1680x1000", "1920x940", "2560x1300"],
+      "languages": ["th", "en"],
+      "statesPerSize": 14,
+      "result": "clean: no page or sidebar scrolling, no sideways overflow, no text cut with an ellipsis"
+    },
+    "chartTextInsideChart": { "sizes": ["1280x580", "1366x650", "1440x700", "1536x730", "1680x1000", "1920x940", "2560x1300"], "result": "every SVG text inside its chart box" },
+    "wrapComparisonAgainstBackup": { "backup": "backups/desktop-type-2026-11-13/", "sizes": ["1280x640", "1366x650", "1440x900", "1536x730", "1920x940"], "remainingExtraWraps": ["KPI notes at 1920x940 (vertical room available)", "one English stat label at 1366x650"] }
+  },
+  "phoneLensProbe": {
+    "motion": "no-preference",
+    "cases": ["quick tap opens the province as before", "hold 260ms opens the lens; release opens the province", "slide to Khon Kaen; release opens Khon Kaen", "release over the sea opens nothing", "second finger closes the lens", "slide off the map cancels"],
+    "result": "every case leaves every tile in its original outline; no console errors"
+  },
+  "phoneProvinceFit": {
+    "problem": "phone layout: the map tools (top right) and the colour key button (bottom right) covered constituencies in a corner of the constituency map, e.g. Nakhon Ratchasima 6 under Reset",
+    "fix": "fitDistricts in e69-app.js (phone only): slide the province clear of both buttons (6 px margin, tested on the real outlines), shrink in 2% steps only when sliding is not enough",
+    "method": "every province opened at 390x844 and 844x390; each button's box sampled every 4 px with isPointInFill on every constituency outline; old e69-app.js served from backups/phone-province-fit-2026-11-13/",
+    "before": { "portrait": "73 of 77 provinces had a constituency under a button", "landscape": "70 of 77" },
+    "after": { "portrait": "0 of 77; 39 provinces moved, median size kept 88%, smallest 68% (Pattani)", "landscape": "0 of 77; 23 moved, median 90%, smallest 76%" },
+    "speed": "opening 10 provinces with the CPU slowed 6x: old 470-794 ms, new 457-718 ms per render (no measurable difference)"
+  },
+  "screenshots": "scratch screenshots reviewed during the round; test screenshots in tests/screenshots/two-page-<time>/ and tests/screenshots/phone-<time>/"
+}

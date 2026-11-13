@@ -1,0 +1,33 @@
+{
+  "round": "Two analysis charts replaced (11 Nov 2026)",
+  "removed": ["ballots (คะแนนคนกับคะแนนพรรค)", "density (เมืองกับชนบท)"],
+  "added": ["coalition (รวมเสียงตั้งรัฐบาล)", "records (ที่สุดของผู้สมัคร)"],
+  "tests": {
+    "unit": "79/79 (tests/data-source, two-page-data, model, methodology)",
+    "desktopE2E": "21/21 (tests/two-page.e2e.cjs; the analysis step recomputes every expected value from the CSV data)",
+    "phoneE2E": "15/15 (tests/phone.e2e.cjs; two steps added for the new charts)"
+  },
+  "screenshotsReviewed": {
+    "states": 40,
+    "desktop": ["1920x1080", "1440x900", "1366x768", "1280x900", "1024x768", "900x800"],
+    "phone": ["390x844", "320x568", "844x390 (held sideways)", "768x1024 (tablet)"],
+    "themes": ["light", "dark"],
+    "languages": ["th", "en"],
+    "pageErrors": 0,
+    "sidewaysOverflow": 0
+  },
+  "desktopOverviewUnchanged": {
+    "method": "pixel comparison with the screenshots kept from the phone-layout round (same Chrome flags, images decoded before each shot, the last-updated clock masked)",
+    "scenes": "12 overview scenes, 2 dark, 2 English",
+    "viewports": 6,
+    "compared": 96,
+    "identical": 90,
+    "different": 6,
+    "differentBecause": "the six ov-sources shots: the sources dialog text was edited on purpose (population-density source line removed, two definitions and one caveat added)"
+  },
+  "findingsCheckedAgainstData": {
+    "majority": "251 of 500; ภูมิใจไทย 192 (59 short); + ประชาชน 312; + เพื่อไทย 266; + กล้าธรรม 250 (1 short); ประชาชน + เพื่อไทย + กล้าธรรม 252; 7 ready-made sets among parties with 1% of the House or more",
+    "records": "most votes 71,153 (เพชรบุรี 3); lowest winning total 19,458 (ภูเก็ต 1); widest lead 69.4% of valid ballots, 59,415 votes (อุบลราชธานี 10); closest 0.32%, 299 votes (นครราชสีมา 3), the same constituency as the overview page's closest race; 8 seats won by under 1%; best loser 43,544 (ประจวบคีรีขันธ์ 1), more than the winners of 235 of 400 seats"
+  },
+  "notDone": ["the two Word manuals still describe the retired charts (deferred at the user's request)", "not yet uploaded to GitHub"]
+}
