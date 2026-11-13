@@ -1,113 +1,113 @@
 {
-  "started": "2026-11-13T05:57:41.919Z",
+  "started": "2026-11-13T10:24:58.023Z",
   "steps": [
     {
       "name": "Overview: Thai default, KPIs, 10 rich party cards with loaded photos, no audit/OCR UI",
-      "ms": 661
+      "ms": 827
     },
     {
       "name": "Hex map: 77 unique equal tiles mapped to ECT codes; labels are full names only",
-      "ms": 2618
+      "ms": 2461
     },
     {
       "name": "Bangkok tooltip: full name, 33 constituencies, weighted turnout, invalid ballots, seats; a short summary that points to the full list",
-      "ms": 969
+      "ms": 1131
     },
     {
       "name": "Tooltip opens at the pointer, follows it, and can be entered after resting",
-      "ms": 3161
+      "ms": 3301
     },
     {
       "name": "Single-constituency and multi-party provinces",
-      "ms": 1706
+      "ms": 2027
     },
     {
       "name": "Party highlight keeps complete province results and shows explicit zero",
-      "ms": 2203
+      "ms": 2439
     },
     {
       "name": "Map colourings: the two ballots are choices of their own; the province list under the House is gone",
-      "ms": 3838
+      "ms": 4256
     },
     {
       "name": "Click pins province detail; constituency drill-down; keyboard navigation",
-      "ms": 5968
+      "ms": 7432
     },
     {
       "name": "Search by combined province + number and by candidate name",
-      "ms": 2815
+      "ms": 3919
     },
     {
       "name": "English mode translates UI and uses full English province names; Clear All keeps language",
-      "ms": 1413
+      "ms": 2056
     },
     {
       "name": "Analysis page: five tabs; the first shows the four main charts at once, each a preview with its finding in a few words",
-      "ms": 1274
+      "ms": 1712
     },
     {
       "name": "A click on a preview opens it large with its question, finding, options and table; a bar leads back or across; Escape returns",
-      "ms": 6445
+      "ms": 7390
     },
     {
       "name": "Highlighting a party in a large chart dissolves the old drawing into the new one and carries over to every chart",
-      "ms": 3482
+      "ms": 3863
     },
     {
       "name": "A band of the flow chart selects its constituencies; the candidate records then rank inside the selection; a row opens beside the chart",
-      "ms": 4428
+      "ms": 5257
     },
     {
       "name": "Building a majority (a tab of its own): who governs now, under the House — the government and the opposition with their parties and seats; the reader can still add parties up",
-      "ms": 11930
+      "ms": 13557
     },
     {
       "name": "Votes by region, candidate records and the comparison, each on a tab of its own",
-      "ms": 7746
+      "ms": 9201
     },
     {
       "name": "Data refresh: icon in the top bar, last-updated time, a saved CSV edit appears in place, a broken edit keeps the old data",
-      "ms": 2610
+      "ms": 3885
     },
     {
       "name": "Colour theme: follows the device by default, menu beside the flags, a pick outlasts a reload, back to the device setting",
-      "ms": 6489
+      "ms": 8405
     },
     {
       "name": "Viewport 360x800: no horizontal overflow; province details reachable",
-      "ms": 3677
+      "ms": 4494
     },
     {
       "name": "Viewport 390x844: no horizontal overflow; province details reachable",
-      "ms": 3682
+      "ms": 4522
     },
     {
       "name": "Viewport 430x932: no horizontal overflow; province details reachable",
-      "ms": 3605
+      "ms": 4522
     },
     {
       "name": "Viewport 768x1024: no horizontal overflow; province details reachable",
-      "ms": 3756
+      "ms": 4534
     },
     {
       "name": "Viewport 1366x768: no horizontal overflow; province details reachable",
-      "ms": 2971
+      "ms": 4147
     },
     {
       "name": "Viewport 1440x900: no horizontal overflow; province details reachable",
-      "ms": 2995
+      "ms": 4430
     },
     {
       "name": "Viewport 1920x1080: no horizontal overflow; province details reachable",
-      "ms": 2946
+      "ms": 4646
     },
     {
       "name": "Offline file:// entry with networking disabled",
-      "ms": 925
+      "ms": 1550
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\two-page-2026-11-13T05-57-41-917Z",
+  "screenshots": "tests\\screenshots\\two-page-2026-11-13T10-24-58-021Z",
   "labelledTilesAt1440": 77,
   "labelPxAt1440": [
     8.5,
@@ -115,8 +115,8 @@
   ],
   "sha256": {
     "index.html": "7bee1f746031655d62d6d9ac36c0734d9360484cf7ec20b1a5d813f23f71cacd",
-    "e69.css": "8de71d51582a08be4812571404aeb3cddba57ce4bb3689a6847fa2b122d36766",
-    "js/e69-app.js": "c79e922c560f9e4be8827e1593be25196b7ab1520b68a99415021e729cba44e3",
+    "e69.css": "82bebf64294a73454b884a9bcc2b1adb5d8ade5aa00a344d6112014c3f8e1bc9",
+    "js/e69-app.js": "f00dc037a699efaadfa62394bdb8f97aa1625003c715d9b648b35c2af26e1961",
     "js/e69-analysis.js": "19862d95d654561d21f813b0031fb93cd0deeb14fe3c6ed3710c0e770c6bcbd9",
     "js/e69-data.js": "1ce736bfce4ddec56e7b3b07df0fc717193ffcebc4525771bb81fbddbd0cc1b4",
     "js/e69-source.js": "b66a6f0acf63bc385431360283d38cbba442c00c3b7f2d147da3f6f16a017522",
@@ -135,5 +135,5 @@
   },
   "browser": "157.0.8103.51",
   "passed": true,
-  "finished": "2026-11-13T05:59:16.963Z"
+  "finished": "2026-11-13T10:26:55.254Z"
 }

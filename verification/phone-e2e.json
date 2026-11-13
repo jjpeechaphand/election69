@@ -1,86 +1,86 @@
 {
-  "started": "2026-11-13T05:56:03.183Z",
+  "started": "2026-11-13T08:39:47.798Z",
   "steps": [
     {
       "name": "Summary: slim top bar (menu button left, flags right), five tabs at the bottom, all ten party cards in two columns",
-      "ms": 412
+      "ms": 559
     },
     {
       "name": "Party card: a tap highlights the party; the search-and-filters tab counts it; the House dims the others",
-      "ms": 849
+      "ms": 921
     },
     {
       "name": "Map: a full-screen map with nothing on top of a province; a tap opens a province above a panel; a constituency opens in the panel",
-      "ms": 3483
+      "ms": 3736
     },
     {
       "name": "Back button: constituency → province → map of Thailand → summary, instead of leaving the site",
-      "ms": 2153
+      "ms": 2184
     },
     {
-      "name": "Focus + context: a finger held on the map opens a lens; the province under it and its neighbours grow, the rest of the country stays",
-      "ms": 6333
+      "name": "Focus + context: the lens is off until its button is pressed (a held finger does nothing); then a finger held on the map opens a lens, the province under it and its neighbours grow, the rest of the country stays",
+      "ms": 9785
     },
     {
       "name": "Lens at the edges and with motion on: a province at the edge stays whole on screen; the lens swells and melts back without a trace",
-      "ms": 11412
+      "ms": 13462
     },
     {
       "name": "Colour key and colourings: the key opens over the map with the full credit and how the lens works; a sheet explains all five colourings",
-      "ms": 2455
+      "ms": 2667
     },
     {
       "name": "Search and filters share one panel: search on top (16 px, not focused, so the keyboard does not cover the filters), examples, then the filters",
-      "ms": 5057
+      "ms": 5834
     },
     {
       "name": "Menu: the button at the top left slides a drawer in from the left with the theme, the data status and the sources; five ways to close it",
-      "ms": 7764
+      "ms": 7960
     },
     {
       "name": "Analysis: one chart at a time; previous / next and a list of all eight charts with their questions",
-      "ms": 2252
+      "ms": 2498
     },
     {
       "name": "Analysis tap: the first tap opens the tooltip as a card above the tab bar; its button does what a click does",
-      "ms": 1908
+      "ms": 2202
     },
     {
       "name": "Finishing places: one bar per party; a tap on a part of a bar names it, and its button selects those constituencies",
-      "ms": 2596
+      "ms": 2499
     },
     {
       "name": "The House tab: the majority builder with who governs now; government and opposition as two cards; the analysis tab goes back to the chart before",
-      "ms": 8843
+      "ms": 9644
     },
     {
       "name": "Candidate records: ranked rows with photos; a row opens the constituency in a sheet that can be dragged down to close",
-      "ms": 2888
+      "ms": 2974
     },
     {
       "name": "Comparison: a search box and a province menu add constituencies; each fact is a block with the constituencies under one another",
-      "ms": 3943
+      "ms": 3965
     },
     {
       "name": "Small phones 360×780, 375×667 and 320×568: no sideways scrolling, five tabs that fit, panel and map share the screen, the lens works",
-      "ms": 10663
+      "ms": 14404
     },
     {
       "name": "Held sideways (844×390): the tabs become a rail on the left, the map sits beside its details, the lens and the drawer work",
-      "ms": 3687
+      "ms": 5094
     },
     {
       "name": "Phones held sideways wider than 900 px (932×430) still get the phone layout; a desktop window of the same size does not",
-      "ms": 734
+      "ms": 1839
     },
     {
-      "name": "Desktop keeps its layout (no lens, no drawer); a narrow window gets the phone layout, where a mouse drag opens the lens",
-      "ms": 4932
+      "name": "Desktop keeps its layout (no lens, no drawer); a narrow window gets the phone layout, where a mouse drag opens the lens once its button is on",
+      "ms": 7548
     }
   ],
   "errors": [],
-  "screenshots": "tests\\screenshots\\phone-2026-11-13T05-56-03-181Z",
+  "screenshots": "tests\\screenshots\\phone-2026-11-13T08-39-47-796Z",
   "browser": "157.0.8103.51",
   "passed": true,
-  "finished": "2026-11-13T05:57:26.155Z"
+  "finished": "2026-11-13T08:41:28.933Z"
 }

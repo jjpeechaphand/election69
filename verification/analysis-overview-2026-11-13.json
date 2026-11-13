@@ -56,5 +56,13 @@
     "after": { "portrait": "0 of 77; 39 provinces moved, median size kept 88%, smallest 68% (Pattani)", "landscape": "0 of 77; 23 moved, median 90%, smallest 76%" },
     "speed": "opening 10 provinces with the CPU slowed 6x: old 470-794 ms, new 457-718 ms per render (no measurable difference)"
   },
+  "phoneLensButton": {
+    "request": "the lens works only after pressing the \"แตะค้าง...\" button; without it the map is a plain map",
+    "change": "#lensBtn (aria-pressed toggle with a switch) replaces the hint in the sea beside the south; lensReady() requires lensMode; off on every visit; placeLensBtn moves it to the nearest open sea, dropping its second line if nothing is free",
+    "sizes": ["320x568", "360x780", "375x667", "390x844", "430x932", "844x390"],
+    "result": "button covers no province at any size in Thai or English; off: a finger held 450 ms or slid opens no lens and moves no tile; on: the lens opens; pressed again: off; no console errors",
+    "tests": { "unit": "79/79", "desktopE2E": "26/26", "phoneE2E": "19/19" },
+    "foundPreExisting": "at 320x568 the reset/zoom row covers a corner of the north (map fills the strip's height); not changed in this round"
+  },
   "screenshots": "scratch screenshots reviewed during the round; test screenshots in tests/screenshots/two-page-<time>/ and tests/screenshots/phone-<time>/"
 }
