@@ -1219,11 +1219,24 @@ body.sheet-open { overscroll-behavior: contain; }
 :root.m .lens-tag small { font-size: 12px; line-height: 1.4; opacity: .78; }
 :root.m .lens-tag .dot { margin-right: 4px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .7); }
 :root.m .lens-tag.is-none { padding: 7px 12px; }
-:root.m .lens-hint { position: absolute; z-index: 2; right: 8px; top: 64%; max-width: min(190px, 56%); display: flex; align-items: center; gap: 8px; margin: 0; padding: 7px 11px 7px 9px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--glass-strong); color: var(--ink-2); font-size: 12px; line-height: 1.4; pointer-events: none; transition: opacity .2s; }
-:root.m .lens-hint svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--ink); }
-:root.m .lens-hint b { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); }
-:root.m .map-stage:is(.is-province, .is-zoomed, .is-animating) .lens-hint { display: none; }
-:root.m .map-stage.has-lens :is(.lens-hint, .map-tools, .map-legend) { opacity: 0; pointer-events: none; }
+/* The lens is off until this button turns it on (aria-pressed): a pill in the open sea beside the south with a switch
+   that slides across; on, it takes the inverse colours of a selected control. */
+:root.m .lens-btn { position: absolute; z-index: 2; right: 8px; top: 64%; max-width: min(214px, 60%); min-height: 44px; display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 10px 6px 9px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--glass-strong); color: var(--ink-2); font: inherit; font-size: 12px; line-height: 1.35; text-align: left; cursor: pointer; box-shadow: var(--shadow-card); -webkit-tap-highlight-color: transparent; transition: opacity .2s, background-color .2s, border-color .2s, color .2s; }
+:root.m .lens-btn svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--ink); }
+:root.m .lens-btn .lb { min-width: 0; }
+:root.m .lens-btn b { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+:root.m .lens-btn .st { display: grid; }   /* both second lines share one cell; the one that does not apply is invisible */
+:root.m .lens-btn .st > * { grid-area: 1 / 1; }
+:root.m .lens-btn[aria-pressed="true"] .st-off, :root.m .lens-btn:not([aria-pressed="true"]) .st-on { visibility: hidden; }
+:root.m .lens-btn.is-compact .st { display: none; }
+:root.m .lens-btn .sw { flex: none; position: relative; width: 30px; height: 18px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--track); transition: background-color .2s, border-color .2s; }
+:root.m .lens-btn .sw::after { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: transform .2s, background-color .2s; }
+:root.m .lens-btn[aria-pressed="true"] { border-color: var(--inv); background: var(--inv); color: var(--inv-sub); }
+:root.m .lens-btn[aria-pressed="true"] :is(svg, b) { color: var(--inv-ink); }
+:root.m .lens-btn[aria-pressed="true"] .sw { border-color: var(--sky); background: var(--sky); }
+:root.m .lens-btn[aria-pressed="true"] .sw::after { background: #fff; transform: translateX(12px); }
+:root.m .map-stage:is(.is-province, .is-zoomed, .is-animating) .lens-btn { display: none; }
+:root.m .map-stage.has-lens :is(.lens-btn, .map-tools, .map-legend) { opacity: 0; pointer-events: none; }
 :root.m .map-tools, :root.m .map-legend { transition: opacity .2s; }
 
 /* details (panel under the map, and the sheet on the analysis page) */
