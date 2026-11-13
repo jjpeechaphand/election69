@@ -29,9 +29,11 @@
     page: 'overview', region: '', party: '', province: '', district: '', candidate: '',
     mapMode: 'winner',
     analysisTab: 'core', mobileChart: 'seats',
+    coreFocus: '',   // desktop: the chart of the four-chart overview that is open large ('' = all four)
     seatTier: 'const', brush: null,
-    ballotMode: 'party', ballotUnit: 'share', ballotSort: 'seats', ballotTop: '15',
-    heatMetric: 'list', heatSort: 'region', densityView: 'groups', densityParty: '', densityBallot: 'partyList', densityScale: 'log',
+    coalition: null, coalMore: false,   // majority builder: the parties picked (null = start from the largest party)
+    heatMetric: 'list', heatSort: 'region',
+    recordBy: 'votes', recordTop: '10',   // candidate records: which ranking, and how many rows
     compare: [], detail: null,
     mView: 'summary',   // phones: the overview page shows either the summary or the map
   });
@@ -64,10 +66,16 @@
     expand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>',
     collapse: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
     refresh: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+    // phone tab bar: the House (a hall with columns) and search with filters (a list that narrows, and a magnifier)
+    house: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M6 17v-6M10 17v-6M14 17v-6M18 17v-6M12 3l8 4.5H4z"/></svg>',
+    find: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h8M3 18h5"/><circle cx="16" cy="15.5" r="3.5"/><path d="m21 20.5-2.5-2.5"/></svg>',
   };
   const isRegionIn = r => !state.region || r.region === state.region;
   const scopeRows = () => D.rows.filter(isRegionIn);
   const calmMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // How much larger than the compact scale text is drawn right now ("type scale" in e69.css): 0 on phones and in
+  // small desktop windows, 1.5 or 2.5 px where there is room. Text drawn by script (charts, map labels) adds it.
+  const typeUp = () => { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--f12')); return Number.isFinite(v) ? Math.max(0, v - 12) : 0; };
 
   /* ---------- colour theme ---------- */
   // Light or dark follows the device unless the visitor picks one from the menu beside the flags; the pick is kept on
@@ -198,6 +206,8 @@
     failedPhotos.add(img.getAttribute('src')); box.classList.add('no-photo'); img.remove();
   }, true);
 
+  // A figure's label keeps its bracket on one line: "ไม่เลือกผู้ใด" may wrap, "(แบบแบ่งเขต)" moves down whole.
+  const keepBracket = s => esc(s).replace(/ \(([^()]+)\)$/, ' <span class="nw">($1)</span>');
   function provinceDetail(p, mode) {
     const interactive = mode !== 'tip';
     const sel = state.party, maxSeat = Math.max(1, ...p.seats.map(s => s.count));
@@ -222,9 +232,9 @@
       '<div><dt>' + t('ผู้มาใช้สิทธิ', 'Voters who turned out') + '</dt><dd>' + value(p.turnout, t('คน', 'people')) + '</dd></div>' +
       '<div class="hl"><dt>' + t('อัตราการใช้สิทธิ', 'Turnout rate') + '</dt><dd>' + (turnout.value !== null ? fmtP(turnout.value) + partial(turnout) : '<span class="na">' + t('ไม่มีข้อมูล', 'Not available') + '</span>') + '</dd></div>' +
       '<div><dt>' + t('ผู้มีสิทธิเลือกตั้ง', 'Eligible voters') + '</dt><dd>' + value(p.eligible, t('คน', 'people')) + '</dd></div>' +
-      '<div><dt>' + t('บัตรเสีย (แบบแบ่งเขต)', 'Invalid ballots (constituency)') + '</dt><dd>' + value(p.invalid, t('ใบ', 'ballots')) + '</dd></div>' +
-      '<div><dt>' + t('บัตรเสีย (บัญชีรายชื่อ)', 'Invalid ballots (party-list)') + '</dt><dd>' + value(p.invalidList, t('ใบ', 'ballots')) + '</dd></div>' +
-      '<div><dt>' + t('ไม่เลือกผู้ใด (แบบแบ่งเขต)', 'No-vote ballots (constituency)') + '</dt><dd>' + value(p.noVote, t('ใบ', 'ballots')) + '</dd></div>' +
+      '<div><dt>' + keepBracket(t('บัตรเสีย (แบบแบ่งเขต)', 'Invalid ballots (constituency)')) + '</dt><dd>' + value(p.invalid, t('ใบ', 'ballots')) + '</dd></div>' +
+      '<div><dt>' + keepBracket(t('บัตรเสีย (บัญชีรายชื่อ)', 'Invalid ballots (party-list)')) + '</dt><dd>' + value(p.invalidList, t('ใบ', 'ballots')) + '</dd></div>' +
+      '<div><dt>' + keepBracket(t('ไม่เลือกผู้ใด (แบบแบ่งเขต)', 'No-vote ballots (constituency)')) + '</dt><dd>' + value(p.noVote, t('ใบ', 'ballots')) + '</dd></div>' +
       '</dl>' +
       (turnout.value !== null ? '<p class="pd-sub">' + t('ผู้มาใช้สิทธิ ', 'Turnout: ') + fmt(turnout.numerator) + t(' จากผู้มีสิทธิ ', ' of ') + fmt(turnout.denominator) + t(' คน', ' eligible voters') + '</p>' : '') +
       '<section class="pd-seats"><h4>' + t('จำนวนเขตที่แต่ละพรรคชนะ', 'Constituencies won by each party') + '</h4><ul>' + seatsHtml + '</ul>' +
@@ -264,9 +274,9 @@
         : '<p class="na-box">' + (r.tied ? t('คะแนนอันดับหนึ่งเท่ากัน ยังไม่ระบุผู้ชนะ', 'First place is tied; no winner is assigned') : t('ยังระบุผู้ชนะไม่ได้', 'Winner unavailable')) + '</p>') +
       '<dl class="pd-stats dd-stats">' +
       '<div class="hl"><dt>' + t('อัตราการใช้สิทธิ', 'Turnout rate') + '</dt><dd>' + fmtP(r.turnoutPct) + ' <small class="of">' + fmt(r.turnout) + ' / ' + fmt(r.eligible) + '</small></dd></div>' +
-      '<div><dt>' + t('บัตรเสีย (แบบแบ่งเขต)', 'Invalid (constituency)') + '</dt><dd>' + fmt(r.invalid) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
-      '<div><dt>' + t('ไม่เลือกผู้ใด (แบบแบ่งเขต)', 'No vote (constituency)') + '</dt><dd>' + fmt(r.noVote) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
-      '<div><dt>' + t('บัตรดี (แบบแบ่งเขต)', 'Valid (constituency)') + '</dt><dd>' + fmt(r.validVotes) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
+      '<div><dt>' + keepBracket(t('บัตรเสีย (แบบแบ่งเขต)', 'Invalid (constituency)')) + '</dt><dd>' + fmt(r.invalid) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
+      '<div><dt>' + keepBracket(t('ไม่เลือกผู้ใด (แบบแบ่งเขต)', 'No vote (constituency)')) + '</dt><dd>' + fmt(r.noVote) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
+      '<div><dt>' + keepBracket(t('บัตรดี (แบบแบ่งเขต)', 'Valid (constituency)')) + '</dt><dd>' + fmt(r.validVotes) + ' <small>' + t('ใบ', 'ballots') + '</small></dd></div>' +
       '</dl>' + ballotNote(r) + actions +
       '<section class="dd-cands"><h4>' + t('คะแนนผู้สมัครทุกคน', 'All candidates') + ' <small>' + r.candidates.length + t(' คน · % ของบัตรดีแบบแบ่งเขต', ' · % of valid constituency ballots') + '</small></h4><ol class="cand-list">' + cands + '</ol></section>' +
       (c ? '<section class="dd-ballots"><h4>' + t('คะแนนสองใบของพรรค', 'Two ballots for ') + esc(party) + ' <small>' + (state.party ? t('พรรคที่เลือก', 'selected party') : t('พรรคของผู้ชนะ', 'winning party')) + '</small></h4>' + ballots + '<p class="caveat">' + t('ข้อมูลระดับเขตไม่สามารถบอกได้ว่าผู้ใช้สิทธิคนใดเลือกต่างกันในสองบัตร', 'District totals cannot reveal how any individual voter split their ballots.') + '</p></section>' : '') +
@@ -285,24 +295,27 @@
     if (brandWord.innerHTML !== brandHtml) { brandWord.innerHTML = brandHtml; brandWord.dataset.text = 'ELECTION' + CFG().brandNumber; }
     $('brandSub').textContent = t('ผลเลือกตั้งไทย ' + CFG().beYear, 'Thai general election ' + CFG().year);
     $('search').placeholder = t('เช่น บางรัก, นครราชสีมา 3, ชื่อผู้สมัคร', 'e.g. Bang Rak, Chiang Mai 3, a candidate');
-    $('searchLabel').textContent = t('ค้นหาจังหวัด เขต/อำเภอ ผู้สมัคร หรือพรรค', 'Search province, district, candidate or party');
+    $('searchLabel').textContent = isM() ? t('พิมพ์ชื่อจังหวัด เลขเขต อำเภอหรือตำบล ชื่อผู้สมัคร หรือพรรค แล้วเลือกจากรายการ', 'Type a province, a constituency number, a district or sub-district (in Thai), a candidate or a party, then pick from the list')
+      : t('ค้นหาจังหวัด เขต/อำเภอ ผู้สมัคร หรือพรรค', 'Search a place, candidate or party');
     $('langGroup').setAttribute('aria-label', t('เลือกภาษา', 'Choose language'));
     document.querySelectorAll('#langGroup button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === lang)));
     $('sourcesLabel').textContent = t('ที่มาข้อมูลและวิธีอ่าน', 'Sources & how to read');
     $('closeNavLabel').textContent = t('ปิดเมนู', 'Close menu'); $('menuLabel').textContent = t('เมนู', 'Menu');
     $('skipLink').textContent = t('ข้ามไปยังเนื้อหา', 'Skip to content');
     $('sheetCloseLabel').textContent = t('ปิด', 'Close');
-    // Phone-only parts (hidden on desktop): the panel's close button, the logo's label, search examples.
-    $('mPanelCloseLabel').textContent = t('ปิด', 'Close');
-    $('mBrandLabel').textContent = 'ELECTION' + CFG().brandNumber + ' · ' + t('สรุปผล', 'Summary');
+    // Phone-only parts (hidden on desktop): the panel's buttons, the menu button and its drawer, search examples.
+    $('mPanelCloseLabel').textContent = t('ปิด', 'Close'); $('mDone').textContent = t('แสดงผล', 'Show results');
+    $('mMenuLabel').textContent = t('เมนู: ธีมสี อัปเดตข้อมูล และที่มาข้อมูล', 'Menu: colour theme, data refresh and sources');
+    $('mDrawerPanel').setAttribute('aria-label', t('เมนู', 'Menu')); $('mDrawerCloseLabel').textContent = t('ปิดเมนู', 'Close menu');
+    if ($('mDrawerWord').innerHTML !== brandHtml) { $('mDrawerWord').innerHTML = brandHtml; $('mDrawerWord').dataset.text = 'ELECTION' + CFG().brandNumber; }
+    $('mDrawerSub').textContent = $('brandSub').textContent;
     $('mTabbar').setAttribute('aria-label', t('เมนูหลัก', 'Main menu'));
     const examples = lang === 'en' ? ['Bangkok', 'Chiang Mai 3', 'Khon Kaen', 'บางรัก', 'ประชาชน'] : ['กรุงเทพมหานคร', 'เชียงใหม่ 3', 'โคราช', 'บางรัก', 'ประชาชน'];
-    $('mExamples').innerHTML = '<p>' + t('พิมพ์ชื่อจังหวัด เลขเขต อำเภอหรือเขต ตำบลหรือแขวง ชื่อผู้สมัคร หรือชื่อพรรค แล้วเลือกจากรายการ เช่น', 'Type a province, a constituency number, a district or sub-district (in Thai), a candidate or a party, then pick from the list. For example:') + '</p><div class="ex">' +
-      examples.map(x => '<button type="button" data-act="m-example" data-v="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div>';
+    $('mExamples').innerHTML = '<span class="ex-h">' + t('เช่น', 'Try') + '</span>' + examples.map(x => '<button type="button" data-act="m-example" data-v="' + esc(x) + '">' + esc(x) + '</button>').join('');
     const opt = (v, label, cur) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(label) + '</option>';
     const provinceOpts = D.provinces.filter(p => !state.region || p.region === state.region).slice().sort((a, b) => pname(a).localeCompare(pname(b), lang === 'en' ? 'en' : 'th'));
     $('filters').innerHTML =
-      '<span class="side-label">' + t('ตัวกรองร่วม (ใช้ทั้งสองหน้า)', 'Shared filters (both pages)') + '</span>' +
+      '<span class="side-label">' + (isM() ? t('ตัวกรอง (ใช้กับทุกหน้า)', 'Filters (apply to every view)') : t('ตัวกรองร่วม (ใช้ทั้งสองหน้า)', 'Shared filters (both pages)')) + '</span>' +
       '<label class="field"><span>' + t('ภูมิภาค', 'Region') + '</span><select id="fRegion">' + opt('', t('ทุกภูมิภาค', 'All regions'), state.region) + D.regions.map(r => opt(r.name, rname(r.name) + ' (' + r.count + ')', state.region)).join('') + '</select></label>' +
       '<label class="field"><span>' + t('จังหวัด', 'Province') + '</span><select id="fProvince">' + opt('', t('ทุกจังหวัด', 'All provinces'), state.province) + provinceOpts.map(p => opt(p.code, pname(p), state.province)).join('') + '</select></label>' +
       '<label class="field"><span>' + t('พรรคที่สนใจ', 'Party of interest') + '</span><select id="fParty">' + opt('', t('ทุกพรรค', 'All parties'), state.party) + D.seatParties.map(p => opt(p.name, p.name + ' · ' + p.totalSeats + t(' ที่นั่ง', ' seats'), state.party)).join('') + '<optgroup label="' + esc(t('พรรคที่ไม่ได้ที่นั่ง', 'Parties without seats')) + '">' + D.parties.filter(p => !p.totalSeats).sort((a, b) => a.name.localeCompare(b.name, 'th')).map(p => opt(p.name, p.name, state.party)).join('') + '</optgroup></select></label>';
@@ -340,7 +353,7 @@
       '<section class="kpis" id="kpis"></section>' +
       '<section class="card parties-card" aria-labelledby="partiesTitle"><div class="card-head"><h2 id="partiesTitle"></h2><div id="partyOthers"></div></div><div class="party-cards" id="partyCards"></div></section>' +
       '<section class="card map-card" aria-labelledby="mapTitle"><div class="card-head map-head"><div id="mapHeading"></div><div class="map-controls" id="mapControls"></div></div>' +
-      '<div class="map-stage" id="mapStage"><svg id="hexmap" role="group"></svg><svg id="distmap" role="group" hidden></svg><p class="map-loading" id="mapLoading" hidden></p><div class="map-tools" id="mapTools"></div><div class="map-legend" id="mapLegend"></div></div>' +
+      '<div class="map-stage" id="mapStage"><svg id="hexmap" role="group"></svg><svg id="distmap" role="group" hidden></svg><p class="map-loading" id="mapLoading" hidden></p><div class="map-tools" id="mapTools"></div><div class="map-legend" id="mapLegend"></div><p class="lens-hint m-only" id="lensHint" aria-hidden="true"></p></div>' +
       '<p class="map-credit" id="mapCredit"></p>' +
       '</section>' +
       '<section class="card context-card" id="context" aria-live="polite"></section>' +
@@ -387,7 +400,7 @@
     const scope = state.region ? rname(state.region) : t('ทั้งประเทศ', 'Nationwide');
     const items = [
       [t('ผู้มาใช้สิทธิ', 'Voters who turned out') + (state.region ? ' ' + (lang === 'th' && state.region !== 'กรุงเทพมหานคร' ? 'ภาค' : '') + scope : ''), fmt(s.turnout.value), fmtP(s.turnoutRate.value) + t(' ของผู้มีสิทธิ ', ' of ') + fmt(s.eligible.value) + t(' คน', ' eligible')],
-      [t('บัตรเสีย แบบแบ่งเขต', 'Invalid constituency ballots'), fmt(s.invalid.value), fmtP(s.invalidRate.value) + t(' ของผู้มาใช้สิทธิ', ' of turnout')],
+      [t('บัตรเสีย แบบแบ่งเขต', 'Invalid ballots (constituency)'), fmt(s.invalid.value), fmtP(s.invalidRate.value) + t(' ของผู้มาใช้สิทธิ', ' of turnout')],
       [t('เขตเลือกตั้ง', 'Constituencies'), fmt(rows.length) + (state.region ? '<small> / ' + D.rows.length + '</small>' : ''), t('ใน ', 'in ') + new Set(rows.map(r => r.provinceCode)).size + t(' จังหวัด', ' provinces')],
       [t('เขตที่ชนะกันไม่ถึง 5%', 'Won by under 5%'), fmt(s.closeRaces), t('คิดจากบัตรดีแบบแบ่งเขต', 'of valid constituency ballots')],
     ];
@@ -488,11 +501,12 @@
     // Outline overlays instead of re-ordering tiles: moving a focused element in the DOM would drop keyboard focus.
     // For the same reason the tile under the pointer is lifted as a copy drawn above its neighbours (see liftTile).
     g.append('polygon').attr('class', 'ring sel-ring').attr('display', 'none');
+    g.append('polygon').attr('class', 'ring lens-ring').attr('display', 'none');   // phones: the province the lens is on
     g.append('g').attr('class', 'hex-lift').attr('aria-hidden', 'true');
     addSheen(g, 'hex', vb.x, vb.y, vb.w, vb.h);
     zoomBehavior = d3.zoom().scaleExtent([1, 6]).translateExtent([[vb.x - 40, vb.y - 40], [vb.x + vb.w + 40, vb.y + vb.h + 40]])
-      .filter(ev => ev.type === 'wheel' ? !ev.button : ev.type.startsWith('touch') ? (ev.touches.length > 1 || camera.k > 1.01) : !ev.button && !ev.ctrlKey)
-      .on('zoom', ev => { camera = ev.transform; g.attr('transform', camera); svg.style('touch-action', camera.k > 1.01 ? 'none' : 'pan-y pinch-zoom'); scheduleLabels(); positionPill(); if (tipCode) hideTip(true); });
+      .filter(ev => ev.type === 'wheel' ? !ev.button : ev.type.startsWith('touch') ? (ev.touches.length > 1 || camera.k > 1.01) : !ev.button && !ev.ctrlKey && !lensReady())
+      .on('zoom', ev => { camera = ev.transform; g.attr('transform', camera); svg.style('touch-action', camera.k > 1.01 ? 'none' : 'pan-y pinch-zoom'); $('mapStage').classList.toggle('is-zoomed', camera.k > 1.01); scheduleLabels(); positionPill(); if (tipCode) hideTip(true); });
     svg.call(zoomBehavior).on('dblclick.zoom', null);
     svg.call(zoomBehavior.transform, camera);
     svg.style('touch-action', 'pan-y pinch-zoom');
@@ -504,8 +518,179 @@
     el.addEventListener('focusin', ev => { const cell = ev.target.closest('.hex'); if (cell) { focusCode = cell.dataset.code; setHover(focusCode); showPill(focusCode); if (!narrow()) showTip(focusCode, cell); } });
     el.addEventListener('focusout', ev => { if (!el.contains(ev.relatedTarget)) { setHover(''); hidePill(); scheduleHide(); } });
     el.addEventListener('keydown', onMapKey);
+    el.addEventListener('pointerdown', lensDown);   // phones: focus + context (see below)
+    el.addEventListener('contextmenu', ev => { if (lens) ev.preventDefault(); });
     if ('ResizeObserver' in window) new ResizeObserver(() => scheduleLabels()).observe($('mapStage'));
   }
+
+  /* ---------- phones: focus + context on the national map ---------- */
+  /* On a phone a province is narrower than a fingertip, so it is hard to aim at. Touch the map and slide (or keep the
+     finger down for a moment) and a fisheye lens opens under the finger: the province there and the ones around it
+     grow (the focus) while the rest of the country stays on screen, pressed together a little (the context). A label
+     above the province names it. The lens stays centred on a province until the finger has crossed its enlarged
+     outline, so the target under the finger is always large and a small slip does not change it. Lifting the finger
+     opens that province; lifting it over the sea opens nothing. A quick tap works as it always did.
+     Only in the phone layout, on the national map at its normal size: two fingers still pinch-zoom, and a zoomed map
+     is still dragged with one finger. */
+  const LENS = { reach: 8 * R * SQ3, hold: 170, slop: 7, target: 78, min: 2, max: 3 };
+  let lens = null;
+  const lensReady = () => isM() && state.page === 'overview' && state.mView === 'map' && !state.province && camera.k <= 1.01 && !$('mapStage').classList.contains('is-animating');
+  const corners = d => d.corners || (d.corners = Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 * (1 + 2 * i); return [d.cx + R * Math.cos(a), d.cy + R * Math.sin(a)]; }));
+  // The fisheye. A map point moves away from the centre of the lens by a factor that falls from `m` at the centre to 1
+  // at LENS.reach, where the map is left as it is; (ox, oy) leans the middle of the lens away from the screen's edge.
+  // The third value is the scale along the radius at that point: the size a label there can keep.
+  function lensAt(L, x, y) {
+    const dx = x - L.cx, dy = y - L.cy, u = Math.hypot(dx, dy) / LENS.reach;
+    if (u >= 1) return [x, y, 1];
+    const v = 1 - u, k = 1 + (L.m - 1) * v * v * v;
+    return [L.cx + dx * k + L.ox * v * v, L.cy + dy * k + L.oy * v * v, 1 + (L.m - 1) * v * v * (1 - 4 * u)];
+  }
+  const lensLayer = () => document.querySelector('#hexmap .hex-layer');
+  const lensPoint = pt => { const m = lensLayer().getScreenCTM(); return m ? new DOMPoint(pt.x, pt.y).matrixTransform(m.inverse()) : null; };
+  // The province whose enlarged tile holds a map point, with the lens settled on its current province.
+  function lensHit(L, x, y) {
+    for (const d of tiles) {
+      const p = corners(d).map(c => lensAt(L.to, c[0], c[1]));
+      let inside = false;
+      for (let i = 0, j = 5; i < 6; j = i++) if ((p[i][1] > y) !== (p[j][1] > y) && x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) inside = !inside;
+      if (inside) return d.code;
+    }
+    return '';
+  }
+  function lensDraw() {
+    const L = lens; let ring = null;
+    d3.select('#hexmap').selectAll('g.hex').each(function (d) {
+      const pts = corners(d).map(c => lensAt(L, c[0], c[1])), mid = lensAt(L, d.cx, d.cy), text = pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ');
+      this.firstChild.setAttribute('points', text);
+      // A name grows with its tile, but never past the size that fits it (on a small map the names start oversized).
+      // (The scale at the tile's outer corners is the smaller one near the centre of the lens, where it falls fastest.)
+      const far = Math.hypot(d.cx - L.cx, d.cy - L.cy) / LENS.reach + R / LENS.reach, s = Math.min(mid[2], far >= 1 ? 1 : 1 + (L.m - 1) * Math.pow(1 - far, 3));
+      const k = s >= 1 ? Math.max(1, s * (d.fitK || 1)) : s, label = this.lastChild;
+      label.setAttribute('transform', 'translate(' + mid[0].toFixed(2) + ',' + mid[1].toFixed(2) + ') scale(' + k.toFixed(3) + ') translate(' + -d.cx + ',' + -d.cy + ')');
+      label.style.opacity = s < 0.9 ? Math.max(0, (s - 0.6) / 0.3).toFixed(2) : '';
+      if (d.code === L.over) ring = text;
+    });
+    d3.select('#hexmap .lens-ring').attr('display', ring ? null : 'none').attr('points', ring);
+  }
+  function lensFrame(now) {
+    const L = lens; if (!L) return;
+    L.frame = 0;
+    const dt = L.last ? Math.min(64, now - L.last) : 16, k = calmMotion() ? 1 : 1 - Math.exp(-dt / 42);
+    L.last = now;
+    let moving = false;
+    for (const key of ['cx', 'cy', 'ox', 'oy', 'm']) {
+      const gap = L.to[key] - L[key];
+      if (Math.abs(gap) < (key === 'm' ? 0.004 : 0.05)) L[key] = L.to[key]; else { L[key] += gap * k; moving = true; }
+    }
+    lensDraw();
+    if (moving) L.frame = requestAnimationFrame(lensFrame);
+    else if (L.closing) lensDone();
+  }
+  const lensKick = () => { if (lens && !lens.frame) { lens.last = 0; lens.frame = requestAnimationFrame(lensFrame); } };
+  // The lens settles on a province: how much it enlarges, and how far its middle leans to keep the tiles it pushes
+  // outward on the screen.
+  function lensFocus(code) {
+    const L = lens, d = tiles.find(x => x.code === code), el = $('hexmap');
+    const px = Math.min(el.clientWidth / vb.w, el.clientHeight / vb.h) * camera.k || 1;   // screen pixels per map unit
+    // The province under the finger is drawn about a thumb wide. The lens is strongest at its very centre and already
+    // a little weaker at the province's own corners, so its strength there is set from the width wanted.
+    const grow = Math.max(LENS.min, Math.min(LENS.max, LENS.target / (R * SQ3 * px))), m = 1 + (grow - 1) / Math.pow(1 - R / LENS.reach, 3);
+    const T = { cx: d.cx, cy: d.cy, ox: 0, oy: 0, m }, box = el.getBoundingClientRect();
+    const a = lensPoint({ x: box.left + 4, y: box.top + 4 }), b = lensPoint({ x: box.right - 4, y: box.bottom - 4 });
+    // The enlarged province must still cover the place it was, so the finger stays on it: that caps the lean. (The
+    // lean is felt a little less at the province's edge than at its centre, hence the division.)
+    const hx = R * SQ3 / 2, capX = 0.95 * (grow - 1) * hx / Math.pow(1 - hx / LENS.reach, 2), capY = 0.95 * (grow - 1) * R / Math.pow(1 - R / LENS.reach, 2);
+    for (let pass = 0; a && b && pass < 3; pass++) {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const q of tiles) for (const c of corners(q)) { const p = lensAt(T, c[0], c[1]); if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
+      T.ox = Math.max(-capX, Math.min(capX, T.ox + 1.25 * (Math.max(0, a.x - x0) - Math.max(0, x1 - b.x))));
+      T.oy = Math.max(-capY, Math.min(capY, T.oy + 1.25 * (Math.max(0, a.y - y0) - Math.max(0, y1 - b.y))));
+    }
+    L.focus = L.over = code; L.to = T;
+    if (!L.on) {
+      L.on = true; Object.assign(L, { cx: d.cx, cy: d.cy, ox: 0, oy: 0, m: 1 });
+      el.classList.add('lens-on'); $('mapStage').classList.add('has-lens');
+      try { localStorage.setItem('e69-lens-used', '1'); } catch (e) { /* nothing to remember */ }
+    }
+    lensTag(); lensKick();
+  }
+  // The label above the enlarged province: its name, what it holds, and what lifting the finger will do.
+  function lensTag() {
+    const L = lens, tag = $('lensTag'), p = L.over && provinceOf(L.over);
+    if (!L.on) { tag.hidden = true; return; }
+    tag.innerHTML = p ? '<b>' + esc(pname(p)) + '</b><span>' + p.count + t(' เขต', p.count === 1 ? ' constituency' : ' constituencies') + p.seats.slice(0, 2).map(s => ' · ' + dot(s.party) + esc(s.party) + ' ' + s.count).join('') + '</span><small>' + t('ปล่อยนิ้วเพื่อเปิดจังหวัดนี้', 'Lift your finger to open it') + '</small>'
+      : '<span>' + t('ตรงนี้ไม่มีจังหวัด', 'No province here') + '</span><small>' + t('ปล่อยนิ้วตรงนี้เพื่อยกเลิก', 'Lift your finger here to cancel') + '</small>';
+    tag.classList.toggle('is-none', !p);
+    tag.hidden = false; lensTagPlace();
+  }
+  function lensTagPlace() {
+    const L = lens, tag = $('lensTag'); if (!L || tag.hidden) return;
+    let x = L.pt.x, y = L.pt.y - 62;
+    if (L.over) {   // above the enlarged province and the ring of neighbours around it, so it hides neither them nor the finger
+      const d = tiles.find(q => q.code === L.over), ring = lensAt(L.to, d.cx + R * SQ3 / 2, d.cy - 2.5 * R), top = new DOMPoint(d.cx + L.to.ox, ring[1]).matrixTransform(lensLayer().getScreenCTM());
+      x = top.x; y = top.y - 6;
+    }
+    tag.style.left = Math.max(6, Math.min(innerWidth - tag.offsetWidth - 6, x - tag.offsetWidth / 2)) + 'px';
+    tag.style.top = Math.max(6, y - tag.offsetHeight) + 'px';
+  }
+  function lensTrack() {
+    const L = lens, box = $('mapStage').getBoundingClientRect(), p = L.pt.x >= box.left && L.pt.x <= box.right && L.pt.y >= box.top && L.pt.y <= box.bottom ? lensPoint(L.pt) : null;
+    const hit = p ? lensHit(L, p.x, p.y) : '';
+    if (hit && hit !== L.focus) lensFocus(hit);
+    else if (hit !== L.over) { L.over = hit; lensTag(); lensKick(); }
+    else if (!hit && L.on) lensTagPlace();
+  }
+  function lensArm() {
+    const L = lens; clearTimeout(L.timer); L.armed = true;
+    setHover(''); hideTip(true);   // a mouse in a narrow window: the tile it rested on is no longer lifted
+    try { $('hexmap').setPointerCapture(L.id); } catch (e) { /* the finger has already left */ }
+    lensTrack();
+  }
+  function lensDown(ev) {
+    if (!lensReady()) return;
+    if (!ev.isPrimary) { lensCancel(); return; }   // a second finger: the pinch takes over
+    if (ev.pointerType === 'mouse' && ev.button) return;
+    if (lens) lensDone();
+    lens = { id: ev.pointerId, x0: ev.clientX, y0: ev.clientY, pt: { x: ev.clientX, y: ev.clientY }, armed: false, on: false, closing: false, over: '', focus: '', cx: 0, cy: 0, ox: 0, oy: 0, m: 1, to: { cx: 0, cy: 0, ox: 0, oy: 0, m: 1 }, frame: 0, last: 0, timer: 0 };
+    // A finger that stays down opens the lens where it is; a mouse (a narrow desktop window) opens it by dragging.
+    if (ev.pointerType !== 'mouse') lens.timer = setTimeout(() => { if (lens && !lens.armed && !lens.closing) lensArm(); }, LENS.hold);
+  }
+  function lensMove(ev) {
+    const L = lens; if (!L || ev.pointerId !== L.id || L.closing) return;
+    L.pt = { x: ev.clientX, y: ev.clientY };
+    if (!L.armed) { if (Math.hypot(ev.clientX - L.x0, ev.clientY - L.y0) < LENS.slop) return; lensArm(); return; }
+    lensTrack();
+  }
+  function lensUp(ev) {
+    const L = lens; if (!L || ev.pointerId !== L.id || L.closing) return;
+    if (!L.armed) { clearTimeout(L.timer); lens = null; return; }   // a quick tap: the click that follows opens the province, as before
+    const open = ev.type === 'pointerup' ? L.over : '';
+    dropClick = performance.now() + 350;   // the lens has decided; the click the browser sends right after must not decide again
+    lensClose();
+    if (open) activateProvince(open, true);
+  }
+  // The lens melts back into the map (and is gone at once for reduced motion).
+  function lensClose() {
+    const L = lens; if (!L) return;
+    clearTimeout(L.timer); L.closing = true; L.over = '';
+    try { $('hexmap').releasePointerCapture(L.id); } catch (e) { /* not captured */ }
+    $('lensTag').hidden = true;
+    if (!L.on) { lens = null; return; }
+    L.to = { cx: L.to.cx, cy: L.to.cy, ox: 0, oy: 0, m: 1 };
+    if (calmMotion()) lensDone(); else lensKick();
+  }
+  // Every tile goes back exactly as it was drawn.
+  function lensDone() {
+    const L = lens; if (!L) return;
+    cancelAnimationFrame(L.frame); clearTimeout(L.timer); lens = null;
+    $('lensTag').hidden = true;
+    d3.select('#hexmap').classed('lens-on', false).selectAll('g.hex').each(function (d) { this.firstChild.setAttribute('points', hexPoints(d.cx, d.cy)); this.lastChild.removeAttribute('transform'); this.lastChild.style.opacity = ''; });
+    d3.select('#hexmap .lens-ring').attr('display', 'none');
+    $('mapStage')?.classList.remove('has-lens');
+  }
+  function lensCancel() { if (lens && !lens.closing) { if (lens.armed) dropClick = performance.now() + 350; lensClose(); } }
+  addEventListener('pointermove', lensMove, { passive: true });
+  addEventListener('pointerup', lensUp); addEventListener('pointercancel', lensUp);
 
   /* Light on the maps. Now and then a soft band of light sweeps across the tiles (or a province's constituencies),
      clipped to their shapes so the sea stays calm; e69.css times it (first pass about a second after the map
@@ -679,6 +864,8 @@
       '<button type="button" class="m-mode m-only" data-act="m-mapmode" aria-haspopup="dialog" aria-label="' + esc(t('สีบนแผนที่: ', 'Map colour: ') + MAP_MODES().find(x => x[0] === state.mapMode)[2]) + '"><span class="sw" style="background:' + modeSwatch(state.mapMode) + '"></span><span class="lb">' + MAP_MODES().find(x => x[0] === state.mapMode)[1] + '</span></button>';
     $('mapTools').innerHTML = '<button type="button" class="map-reset" data-act="map-reset" title="' + t('กลับไปแผนที่ประเทศไทยตอนเปิดหน้าเว็บ', 'Back to the full map of Thailand') + '">' + RESET_ICON + t('รีเซ็ต', 'Reset') + '</button>' +
       '<button type="button" class="icon-btn" data-act="zoom" data-v="in" title="' + t('ขยาย', 'Zoom in') + '" aria-label="' + t('ขยายแผนที่', 'Zoom in') + '">+</button><button type="button" class="icon-btn" data-act="zoom" data-v="out" title="' + t('ย่อ', 'Zoom out') + '" aria-label="' + t('ย่อแผนที่', 'Zoom out') + '">−</button>';
+    // Phones: what the lens is for, in the open sea beside the south (the gesture cannot be seen otherwise).
+    $('lensHint').innerHTML = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg><span><b>' + t('แตะค้างแล้วเลื่อนนิ้ว', 'Touch and slide') + '</b>' + t('แว่นขยายช่วยเล็งจังหวัด', 'a lens helps you aim') + '</span>';
   }
   // The five colourings as the phone sheet lists them: [value, short name for the pill, full name, what it shows, group].
   const MAP_MODES = () => {
@@ -710,7 +897,7 @@
   // How-to line at the foot of the legend; the map's credits sit under the map, outside its frame.
   const mapNote = () => state.province
     ? '<p class="lg-cap lg-note">' + (coarse() ? t('แตะเขตเพื่อดูคะแนนผู้สมัคร', 'Tap a constituency for candidate results.') : t('ชี้เขตเพื่อดูชื่อพื้นที่และผล คลิกเพื่อดูคะแนนผู้สมัครทุกคน', 'Hover a constituency for its area and result, click for every candidate.')) + '</p>'
-    : '<p class="lg-cap lg-note">' + (coarse() ? t('แตะจังหวัดเพื่อดูแผนที่รายเขต', 'Tap a province to open its constituencies.') : t('ชี้จังหวัดเพื่อดูสรุป คลิกเพื่อซูมเข้าไปดูรายเขต', 'Hover a province for a summary, click to zoom into its constituencies.')) + '</p>';
+    : '<p class="lg-cap lg-note">' + (coarse() ? t('แตะจังหวัดเพื่อดูแผนที่รายเขต', 'Tap a province to open its constituencies.') + (isM() ? t(' หรือแตะค้างแล้วเลื่อนนิ้ว: แว่นขยายจะขยายจังหวัดใต้นิ้วและรอบ ๆ ให้เล็งง่าย แล้วปล่อยนิ้วเพื่อเปิด', ' Or touch and slide: a lens enlarges the provinces under and around your finger; lift it to open one.') : '') : t('ชี้จังหวัดเพื่อดูสรุป คลิกเพื่อซูมเข้าไปดูรายเขต', 'Hover a province for a summary, click to zoom into its constituencies.')) + '</p>';
   const HEX_SOURCE = 'https://github.com/puripant/thailand-hex-map', SHAPE_SOURCE = 'https://github.com/KittapatR/Thai-ECT-election-map';
   // One wording for the hex-map credit, used under the map and in the sources dialog; `linkHtml` is the linked title.
   // Non-breaking spaces keep the academic title with the name, so a line never ends between "ผศ." and "ดร.".
@@ -945,6 +1132,60 @@
     return { fill: r => r.winnerParty ? D.colorOf(r.winnerParty) : pal.empty, ink: r => r.winnerParty ? inkFor(D.colorOf(r.winnerParty)) : pal.otherInk, value: r => r.winnerParty || t('ยังไม่มีผู้ชนะ', 'no winner'),
       legend: '<div class="lg-items">' + p.seats.map(s => '<button type="button" class="lg-item" data-act="party" data-v="' + esc(s.party) + '">' + dot(s.party) + esc(s.party) + ' <small>' + s.count + t(' เขต', '') + '</small></button>').join('') + '</div><p class="lg-cap">' + t('สีคือพรรคของผู้ชนะในแต่ละเขต ตัวเลขในพื้นที่คือหมายเลขเขต', 'Colour is the winning party in each constituency; numbers are constituency numbers') + '</p>' };
   }
+  // Fits a province into the constituency map. On a phone the map tools sit over the top-right corner of the map and
+  // the colour key button over the bottom-right, so a constituency drawn there would hide under a button, number and
+  // all. When the plain fit runs under either, the drawing is first slid aside within the map and only made smaller
+  // (a step at a time) when sliding is not enough; of the places that keep clear it takes the one nearest the middle.
+  function fitDistricts(feats, W, H, el) {
+    const M = 18, plain = d3.geoIdentity().reflectY(true).fitExtent([[M, M], [W - M, H - M]], { type: 'FeatureCollection', features: feats });
+    if (!isM()) return plain;
+    const box = el.getBoundingClientRect();
+    const room = n => { if (!n || !n.getClientRects().length) return null; const r = n.getBoundingClientRect();
+      return r.width ? { x0: r.left - box.left - 6, y0: r.top - box.top - 6, x1: r.right - box.left + 6, y1: r.bottom - box.top + 6 } : null; };
+    const keep = [room($('mapTools')), room($('mapLegend').querySelector('.lg-toggle'))].filter(Boolean);
+    if (!keep.length) return plain;
+    // Outer outlines as the plain fit draws them, each with its bounding box, and the box of the whole province.
+    const rings = feats.flatMap(f => f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.map(p => p[0]) : [])
+      .map(ring => { const pts = ring.map(pt => plain(pt)); return { pts, x0: d3.min(pts, q => q[0]), x1: d3.max(pts, q => q[0]), y0: d3.min(pts, q => q[1]), y1: d3.max(pts, q => q[1]) }; });
+    if (!rings.length) return plain;
+    const bx0 = d3.min(rings, r => r.x0), by0 = d3.min(rings, r => r.y0), bw = d3.max(rings, r => r.x1) - bx0, bh = d3.max(rings, r => r.y1) - by0;
+    // Does an outline cross box r, or hold it inside? (An edge through the box, or a corner of the box in the shape.)
+    const meets = (ring, r) => {
+      if (ring.x1 < r.x0 || ring.x0 > r.x1 || ring.y1 < r.y0 || ring.y0 > r.y1) return false;
+      const p = ring.pts;
+      for (let i = 1; i < p.length; i++) {
+        const ax = p[i - 1][0], ay = p[i - 1][1], bx = p[i][0], by = p[i][1];
+        if ((ax < r.x0 && bx < r.x0) || (ax > r.x1 && bx > r.x1) || (ay < r.y0 && by < r.y0) || (ay > r.y1 && by > r.y1)) continue;
+        let t0 = 0, t1 = 1, cut = false;                       // Liang–Barsky: does the edge a–b reach into the box?
+        for (const [d, q] of [[ax - bx, ax - r.x0], [bx - ax, r.x1 - ax], [ay - by, ay - r.y0], [by - ay, r.y1 - ay]]) {
+          if (d === 0) { if (q < 0) { cut = true; break; } continue; }
+          const t = q / d;
+          if (d < 0) { if (t > t1) { cut = true; break; } if (t > t0) t0 = t; } else { if (t < t0) { cut = true; break; } if (t < t1) t1 = t; }
+        }
+        if (!cut) return true;
+      }
+      return d3.polygonContains(p, [r.x0, r.y0]);
+    };
+    // Is the drawing clear of every button when made s times as large and its top-left corner put at (left, top)?
+    // The buttons' boxes are taken back into the plain drawing, so no outline is moved to test a place.
+    const clear = (s, left, top) => keep.every(k => {
+      const r = { x0: bx0 + (k.x0 - left) / s, x1: bx0 + (k.x1 - left) / s, y0: by0 + (k.y0 - top) / s, y1: by0 + (k.y1 - top) / s };
+      return !rings.some(ring => meets(ring, r));
+    });
+    const k0 = plain.scale(), [tx, ty] = plain.translate();
+    const placed = (s, left, top) => d3.geoIdentity().reflectY(true).scale(k0 * s).translate([s * tx + left - s * bx0, s * ty + top - s * by0]);
+    for (let s = 1; s >= 0.6; s -= 0.02) {
+      const w = bw * s, h = bh * s, cx = M + (W - 2 * M - w) / 2, cy = M + (H - 2 * M - h) / 2;
+      let spot = null;
+      for (const top of [cy, M, H - M - h]) for (const left of [cx, M, W - M - w]) if (!spot && clear(s, left, top)) spot = [left, top];
+      if (!spot) continue;
+      let lo = 0, hi = 1;                                      // then back toward the middle as far as it stays clear
+      for (let i = 0; i < 6; i++) { const m = (lo + hi) / 2; if (clear(s, spot[0] + (cx - spot[0]) * m, spot[1] + (cy - spot[1]) * m)) lo = m; else hi = m; }
+      return placed(s, spot[0] + (cx - spot[0]) * lo, spot[1] + (cy - spot[1]) * lo);
+    }
+    return plain;
+  }
+
   function drawDistrictMap(entrance, animate) {
     const code = state.province, el = $('distmap'), p = provinceOf(code);
     const change = colourChange(), motion = animate && !entrance && change;
@@ -969,7 +1210,7 @@
       distKey = code; el.__fit = [W, H];
       svg.attr('viewBox', [0, 0, W, H].join(' '));
       const feats = window.E69_DISTRICT_SHAPES.features.filter(f => f.properties.provinceCode === code);
-      const projection = d3.geoIdentity().reflectY(true).fitExtent([[18, 18], [W - 18, H - 18]], { type: 'FeatureCollection', features: feats });
+      const projection = fitDistricts(feats, W, H, el);
       const path = d3.geoPath(projection);
       svg.selectAll('*').remove();
       addSheenDefs(svg.append('defs'), 'dist').selectAll('path').data(feats).join('path').attr('d', path);
@@ -986,7 +1227,7 @@
       g.append('g').attr('class', 'dist-labels').attr('aria-hidden', 'true').selectAll('text').data(feats, f => f.properties.id).join('text')
         .attr('class', 'dist-label').attr('data-id', f => f.properties.id).attr('dy', '.36em').text(f => f.properties.number)
         .each(function (f) { const [x, y, r] = labelSpot(f, projection); this.__room = r; d3.select(this).attr('x', x.toFixed(1)).attr('y', y.toFixed(1)); });
-      el.__labelBase = Math.max(12, Math.min(17, Math.min(W, H) / 26));
+      el.__labelBase = Math.max(12, Math.min(17, Math.min(W, H) / 26)) + typeUp();
       sizeDistLabels(el, 1);
       addSheen(g, 'dist', 0, 0, W, H);
       el.__path = path;
@@ -1166,7 +1407,7 @@
     const el = $('hexmap'); if (!el || !el.clientWidth) return;
     positionLegend();
     const svgScale = Math.min(el.clientWidth / vb.w, el.clientHeight / vb.h), scale = svgScale * camera.k;
-    const hexW = R * SQ3 * scale, hexH = 2 * R * scale, base = Math.max(10, Math.min(14, hexW * 0.27));
+    const up = typeUp(), hexW = R * SQ3 * scale, hexH = 2 * R * scale, base = Math.max(10 + up, Math.min(14 + up, hexW * 0.27));   // a name is never larger than this, nor than fits its tile
     const roomW = [0, 0.88, 0.86, 0.78], roomH = [0, 0.5, 0.66, 0.8];
     // Romanised names run longer per line, so they are fitted to the tile's real outline: a pointy-top hexagon
     // narrows towards its top and bottom points, and every line has to clear the edges at its own height.
@@ -1197,6 +1438,7 @@
         if (best.fit < LATIN_FLOOR) best = d.tightOpts.map(o => ({ o, fit: shapeFit(o) })).reduce((a, b) => b.fit > a.fit ? b : a);
       }
       const px = Math.max(latin ? LATIN_FLOOR : LABEL_FLOOR, best.fit), n = best.o.lines.length;
+      d.fitK = Math.min(1, best.fit / px);   // below 1 the name is already larger than its tile (a small map); the phone lens uses it
       text.attr('font-size', px / scale).attr('display', null);
       text.selectAll('tspan').data(best.o.lines).join('tspan').attr('x', d.cx).attr('dy', (_, i) => i === 0 ? (-(n - 1) / 2 * LINE + 0.36) + 'em' : LINE + 'em').text(x => x);
     });
@@ -1298,7 +1540,7 @@
     const p = provinceOf(code), tip = $('provinceTip');
     tipCode = code; tip.innerHTML = provinceDetail(p, 'tip'); tip.hidden = false;
     tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', ptitle(p));
-    tip.style.maxHeight = Math.min(600, innerHeight - 24) + 'px';
+    tip.style.maxHeight = Math.min(600 + 50 * typeUp(), innerHeight - 24) + 'px';
     if (pt) { placeTipAt(pt); restSoon(); return; }
     settle(true); restPt = null;
     const anchor = cell.querySelector('polygon').getBoundingClientRect();
@@ -1468,6 +1710,23 @@
     box.hidden = false; $('search').setAttribute('aria-expanded', 'true');
   }
   function closeSearch() { $('searchResults').hidden = true; $('search').setAttribute('aria-expanded', 'false'); $('search').removeAttribute('aria-activedescendant'); active = -1; }
+  // Constituencies that match a query, best first: by province and number, by a place inside them, or by a candidate.
+  // Used by the comparison's own search box (e69-analysis.js). Each constituency appears once, with what matched.
+  function findDistricts(query, limit = 8) {
+    const q = norm(query); if (!q) return [];
+    const order = { district: 0, area: 1, candidate: 2 }, best = new Map();
+    for (const it of searchItems) {
+      if (!(it.type in order)) continue;
+      let s = Infinity, m = -1;
+      it.terms.forEach((term, i) => { if (!term) return; const v = term === q ? 0 : term.startsWith(q) ? 1 : term.includes(q) ? 2 : Infinity; if (v < s) { s = v; m = i; } });
+      if (s === Infinity) continue;
+      const rank = s * 3 + order[it.type], had = best.get(it.id);
+      if (had && had.rank <= rank) continue;
+      const sub = it.type === 'area' && m >= 2 ? it.subs[m - 2] : '';
+      best.set(it.id, { id: it.id, rank, type: it.type, why: it.type === 'area' ? (sub ? sub + t(' ใน', ' in ') : '') + it.area + (it.partial && !sub ? t(' (บางส่วน)', ' (part)') : '') : it.type === 'candidate' ? it.name + ' (' + it.party + ')' : '' });
+    }
+    return [...best.values()].sort((a, b) => a.rank - b.rank || Number(D.byId.get(a.id).provinceCode) - Number(D.byId.get(b.id).provinceCode) || D.byId.get(a.id).number - D.byId.get(b.id).number).slice(0, limit);
+  }
   function choose(i) {
     const it = results[i]; if (!it) return;
     closeSearch(); $('search').value = '';
@@ -1509,7 +1768,11 @@
     $('searchResults').querySelectorAll('[role=option]').forEach((o, i) => o.setAttribute('aria-selected', String(i === active)));
     $('search').setAttribute('aria-activedescendant', 'sr' + active); $('sr' + active)?.scrollIntoView({ block: 'nearest' });
   });
-  $('searchResults').addEventListener('pointerdown', ev => { const o = ev.target.closest('[data-i]'); if (o) { ev.preventDefault(); choose(Number(o.dataset.i)); } });
+  // A result is chosen by a click (on a phone, a tap): a finger can then scroll the list without choosing the result
+  // it landed on, and no second click falls through to whatever lies under the closed panel. Pressing the mouse button
+  // on a result must not take the keyboard focus out of the search box.
+  $('searchResults').addEventListener('pointerdown', ev => { if (ev.pointerType === 'mouse' && ev.target.closest('[data-i]')) ev.preventDefault(); });
+  $('searchResults').addEventListener('click', ev => { const o = ev.target.closest('[data-i]'); if (o) choose(Number(o.dataset.i)); });
   document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.search-wrap')) closeSearch(); });
 
   /* ---------- state, events, navigation ---------- */
@@ -1523,12 +1786,14 @@
   function setPage(page, chart) {
     if (page !== 'overview' && page !== 'analysis') page = 'overview';
     hideTip(true); hideChartTip();
-    if (state.page !== page) { closeSheet(); state.page = page; if (chart) { state.analysisTab = 'core'; state.mobileChart = chart; } render(); $('main').scrollTop = 0; }
-    else if (chart) setState({ mobileChart: chart });
+    // A link to one chart opens it: large in the four-chart overview on the desktop, as the chart on screen on a phone.
+    if (state.page !== page) { closeSheet(); state.page = page; if (chart) { state.analysisTab = 'core'; state.mobileChart = chart; state.coreFocus = chart; } render(); $('main').scrollTop = 0; }
+    else if (chart) setState({ analysisTab: 'core', mobileChart: chart, coreFocus: chart });
     if (location.hash !== '#' + page) history.replaceState(null, '', '#' + page);
     closeNav();
   }
   function render() {
+    if (lens && !lens.closing) lensCancel();   // the map is about to change under the finger
     document.documentElement.lang = lang;
     document.title = (state.page === 'overview' ? t('ภาพรวม', 'Overview') : t('วิเคราะห์ข้อมูล', 'Data Analysis')) + ' · Election ' + CFG().brandNumber;
     // Phones: which view is on screen (summary, map or analysis); set first, so the map is measured at its real size.
@@ -1541,7 +1806,7 @@
     if (isM()) { renderTabbar(); armBack(); }
   }
   function clearAll() {
-    hideTip(true); hideChartTip(); closeSheet(); closeSearch(); $('search').value = '';
+    hideTip(true); hideChartTip(); closeSheet(); closeSearch(); closeDrawer(); lensDone(); $('search').value = '';
     state = defaults(); instantMap = true; legendOpen = false; mPanelSize = 'half';
     if ($('hexmap')) { stopMapAnimations(); camera = d3.zoomIdentity; d3.select('#hexmap').call(zoomBehavior.transform, d3.zoomIdentity); }
     E69.analysis?.reset?.();
@@ -1551,59 +1816,117 @@
   function openNav() { document.body.classList.add('nav-open'); $('scrim').hidden = false; $('menuBtn').setAttribute('aria-expanded', 'true'); $('main').inert = true; $('closeNav').focus(); }
   function closeNav() { closePanel(); if (!document.body.classList.contains('nav-open')) return; document.body.classList.remove('nav-open'); $('scrim').hidden = true; $('menuBtn').setAttribute('aria-expanded', 'false'); $('main').inert = false; $('menuBtn').focus(); }
 
-  /* ---------- phones: tab bar, search and filter panels, back button, tapping charts ---------- */
+  /* ---------- phones: tab bar, search-and-filters panel, menu drawer, back button, tapping charts ---------- */
   // Five tabs within reach of the thumb: the summary and the map (the two halves of the overview page), the analysis
-  // page, and two panels that open above the tab bar: search, and filters with the colour theme and the data status.
-  let mPanel = '', mPanelSize = 'half';
+  // page, the House (the majority builder with who governs now, which is one of the analysis charts) and one panel
+  // that opens above the tab bar: search, with the shared filters under it. The colour theme, the data status and the
+  // sources are in a drawer that slides in from the left edge (the menu button at the top left of the screen).
+  // (Until 13 Nov 2026 search and filters were two tabs, and the settings sat under the filters.)
+  let mPanel = '', mPanelSize = 'half', mDrawer = false, mLastChart = 'seats';
+  const onHouse = () => state.page === 'analysis' && state.mobileChart === 'coalition';
   function renderTabbar() {
     const bar = $('mTabbar'); if (!isM()) return;
-    const cur = mPanel || (state.page === 'analysis' ? 'analysis' : state.mView === 'map' ? 'map' : 'summary');
+    if (state.mobileChart !== 'coalition') mLastChart = state.mobileChart;
+    const cur = mPanel || (onHouse() ? 'house' : state.page === 'analysis' ? 'analysis' : state.mView === 'map' ? 'map' : 'summary');
     const n = [state.region, state.party, state.province].filter(Boolean).length;
-    const items = [['summary', t('สรุปผล', 'Summary'), ICON.overview], ['map', t('แผนที่', 'Map'), ICON.map], ['analysis', t('วิเคราะห์', 'Analysis'), ICON.analysis], ['search', t('ค้นหา', 'Search'), ICON.search], ['menu', t('ตัวกรอง', 'Filters'), ICON.filters]];
+    const items = [['summary', t('สรุปผล', 'Summary'), ICON.overview], ['map', t('แผนที่', 'Map'), ICON.map], ['analysis', t('วิเคราะห์', 'Analysis'), ICON.analysis], ['house', t('สภา', 'House'), ICON.house], ['search', t('ค้นหา/กรอง', 'Find/filter'), ICON.find]];
     morph(bar, items.map(([k, label, icon]) => {
-      const panel = k === 'search' || k === 'menu', on = k === cur;
-      return '<button type="button" class="m-tab" data-act="m-tab" data-v="' + k + '"' + (panel ? ' aria-expanded="' + on + '" aria-controls="sidebar"' : on ? ' aria-current="page"' : '') +
-        (k === 'menu' && n ? ' aria-label="' + esc(label + ' · ' + t('ใช้อยู่ ', 'active: ') + n) + '"' : '') + '><span class="ic">' + icon + '</span><span class="lb">' + label + '</span>' +
-        (k === 'menu' && n ? '<span class="m-badge" aria-hidden="true">' + n + '</span>' : '') + '</button>';
+      const panel = k === 'search', on = k === cur;
+      const full = k === 'house' ? t('สภา: ฝ่ายรัฐบาล ฝ่ายค้าน และการรวมเสียง', 'The House: government, opposition and majorities')
+        : panel ? t('ค้นหาและตัวกรอง', 'Search and filters') + (n ? ' · ' + t('ตัวกรองที่ใช้อยู่ ', 'filters in use: ') + n : '') : '';
+      return '<button type="button" class="m-tab" data-act="m-tab" data-v="' + k + '"' + (panel ? ' aria-expanded="' + on + '" aria-controls="sidebar"' : on ? ' aria-current="page"' : '') + (full ? ' aria-label="' + esc(full) + '"' : '') +
+        '><span class="ic">' + icon + '</span><span class="lb">' + label + '</span>' + (panel && n ? '<span class="m-badge" aria-hidden="true">' + n + '</span>' : '') + '</button>';
     }).join(''));
   }
   function mTab(v) {
-    if (v === 'search' || v === 'menu') { if (mPanel === v) closePanel(true); else openPanel(v); return; }
+    if (v === 'search') { if (mPanel) closePanel(true); else openPanel(); return; }
     closePanel(); hideChartTip();
-    if (v === 'analysis') { if (state.page !== 'analysis') setPage('analysis'); else $('pageAnalysis').scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' }); return; }
+    const toTop = el => el.scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' });   // tapping the current tab goes back to the top
+    if (v === 'house' || v === 'analysis') {
+      // The House tab opens the majority builder; the analysis tab goes back to the chart that was on screen before it.
+      const chart = v === 'house' ? 'coalition' : state.mobileChart === 'coalition' ? mLastChart : state.mobileChart;
+      if (state.page === 'analysis' && state.mobileChart === chart) { toTop($('pageAnalysis')); return; }
+      state.mobileChart = chart;
+      if (v === 'house') { state.analysisTab = 'coalition'; state.coreFocus = ''; }   // the same chart if the screen later turns into the desktop layout
+      if (state.page !== 'analysis') setPage('analysis'); else { closeSheet(); render(); $('pageAnalysis').scrollTop = 0; }
+      return;
+    }
     if (state.page !== 'overview') { state.mView = v; setPage('overview'); return; }
     if (state.mView !== v) setState({ mView: v });
-    else if (v === 'summary') $('pageOverview').scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' });   // tapping the current tab goes back to the top
+    else if (v === 'summary') toTop($('pageOverview'));
   }
-  function openPanel(kind) {
+  // Search and filters: one panel between the top of the screen and the tab bar. The search box is not focused on
+  // opening, because the keyboard would cover the filters under it; while results are listed they take the whole panel.
+  function openPanel() {
     if (!isM()) return;
-    hideChartTip(); if (!$('sheet').hidden) closeSheet();
-    mPanel = kind;
-    document.body.classList.toggle('m-panel-search', kind === 'search'); document.body.classList.toggle('m-panel-menu', kind === 'menu');
-    $('mPanelTitle').textContent = kind === 'search' ? t('ค้นหา', 'Search') : t('ตัวกรองและการตั้งค่า', 'Filters and settings');
+    hideChartTip(); closeDrawer(); if (!$('sheet').hidden) closeSheet();
+    mPanel = 'search';
+    document.body.classList.add('m-panel-search');
+    $('mPanelTitle').textContent = t('ค้นหาและตัวกรอง', 'Search and filters');
     $('sidebar').setAttribute('aria-label', $('mPanelTitle').textContent);
     $('main').inert = true; $('sidebar').scrollTop = 0;
-    renderTabbar(); renderPhoneSettings();
-    if (kind === 'search') { $('search').focus(); if ($('search').value) suggest(); } else $('mPanelClose').focus();
+    renderTabbar();
+    if ($('search').value) suggest();
+    $('mPanelClose').focus({ preventScroll: true });
     armBack();
   }
   function closePanel(refocus) {
     if (!mPanel) return;
-    const was = mPanel; mPanel = '';
-    document.body.classList.remove('m-panel-search', 'm-panel-menu');
+    mPanel = '';
+    document.body.classList.remove('m-panel-search');
     $('main').inert = false; closeSearch();
     $('sidebar').setAttribute('aria-label', t('เมนูหลัก', 'Main menu'));
     renderTabbar();
-    if (refocus) document.querySelector('#mTabbar [data-v="' + was + '"]')?.focus();
+    if (refocus) document.querySelector('#mTabbar [data-v="search"]')?.focus();
   }
-  // Filters panel: colour theme (same as device, light, dark) and when the data was loaded, with a refresh button.
+  // The menu drawer: colour theme (same as device, light, dark), when the data was loaded with a refresh button, and
+  // the sources. It opens from the button at the top left and closes with its own button, a tap beside it, a swipe to
+  // the left, Escape or the phone's back button.
+  let drawerTimer = 0, drawerDrag = null;
+  function openDrawer() {
+    if (!isM() || mDrawer) return;
+    hideChartTip(); closePanel(); lensCancel(); if (!$('sheet').hidden) closeSheet();
+    mDrawer = true; clearTimeout(drawerTimer);
+    const box = $('mDrawer'); box.classList.remove('is-closing'); box.querySelector('.m-drawer-panel').style.transform = ''; box.hidden = false;
+    $('mMenuBtn').setAttribute('aria-expanded', 'true');
+    $('main').inert = true; $('mTabbar').inert = true;
+    renderPhoneSettings();
+    $('mDrawerClose').focus({ preventScroll: true });
+    armBack();
+  }
+  function closeDrawer(refocus) {
+    if (!mDrawer) return;
+    mDrawer = false;
+    const box = $('mDrawer'), panel = box.querySelector('.m-drawer-panel'), done = () => { box.hidden = true; box.classList.remove('is-closing'); };
+    $('mMenuBtn').setAttribute('aria-expanded', 'false');
+    $('main').inert = !!mPanel; $('mTabbar').inert = false;
+    clearTimeout(drawerTimer); panel.style.transform = '';
+    if (calmMotion() || !isM()) done(); else { box.classList.add('is-closing'); drawerTimer = setTimeout(done, 220); }
+    if (refocus) $('mMenuBtn').focus({ preventScroll: true });
+  }
   function renderPhoneSettings() {
-    const box = $('mSettings'); if (!box || !DS) return;
+    const box = $('mSettings'); if (!box || !DS || !isM()) return;
     morph(box, '<div class="m-set"><span class="side-label">' + t('ธีมสี', 'Colour theme') + '</span><div class="m-theme" role="radiogroup" aria-label="' + t('ธีมสี', 'Colour theme') + '">' +
       ['system', 'light', 'dark'].map(v => '<button type="button" role="radio" aria-checked="' + (themeChoice === v) + '" data-act="theme" data-v="' + v + '">' + THEME_ICON[v] + '<span>' + themeName(v) + '</span></button>').join('') + '</div></div>' +
       '<div class="m-set"><span class="side-label">' + t('ข้อมูล', 'Data') + '</span><div class="m-data"><span>' + (refreshing ? t('กำลังอัปเดต…', 'Updating…') : t('อัปเดตล่าสุด ', 'Last updated ') + '<b>' + esc(clockText(DS.loadedAt)) + '</b>') + '</span>' +
-      '<button type="button" class="ghost-btn' + (refreshing ? ' is-loading' : '') + '" data-act="refresh-data"' + (refreshing ? ' disabled' : '') + '>' + ICON.refresh + t('อัปเดตข้อมูล', 'Refresh') + '</button></div></div>');
+      '<button type="button" class="ghost-btn' + (refreshing ? ' is-loading' : '') + '" data-act="refresh-data"' + (refreshing ? ' disabled' : '') + '>' + ICON.refresh + t('อัปเดตข้อมูล', 'Refresh') + '</button></div>' +
+      '<p class="m-about">' + t('ผลอย่างเป็นทางการจาก ' + CFG().sourceTh + ' ณ ', 'Official results from the ' + CFG().sourceEn + ' as of ') + esc(thaiDate(D.updatedAt)) + '</p></div>' +
+      '<div class="m-set"><span class="side-label">' + t('เกี่ยวกับข้อมูล', 'About the data') + '</span><button type="button" class="m-row" data-act="sources"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span><b>' + t('ที่มาข้อมูลและวิธีอ่าน', 'Sources & how to read') + '</b><small>' + t('แหล่งข้อมูล นิยามตัวเลข และผลการตรวจสอบ', 'Data sources, definitions and checks') + '</small></span>' + ICON.next + '</button></div>');
   }
+  $('mDrawer').addEventListener('pointerdown', ev => { if (mDrawer && ev.isPrimary) drawerDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, on: false }; });
+  addEventListener('pointermove', ev => {
+    const g = drawerDrag; if (!g || ev.pointerId !== g.id) return;
+    const dx = ev.clientX - g.x, dy = ev.clientY - g.y;
+    if (!g.on && dx < -12 && Math.abs(dx) > Math.abs(dy) * 1.2) g.on = true;
+    if (g.on) $('mDrawer').querySelector('.m-drawer-panel').style.transform = 'translateX(' + Math.min(0, dx) + 'px)';
+  }, { passive: true });
+  const endDrawerDrag = ev => {
+    const g = drawerDrag; if (!g || ev.pointerId !== g.id) return;
+    drawerDrag = null; if (!g.on) return;
+    dropClick = performance.now() + 400;   // the swipe must not also press the button it started on
+    if (ev.type === 'pointerup' && ev.clientX - g.x < -70) closeDrawer(true); else $('mDrawer').querySelector('.m-drawer-panel').style.transform = '';
+  };
+  addEventListener('pointerup', endDrawerDrag); addEventListener('pointercancel', endDrawerDrag);
   // The panel under the map: a peek (the header only), half the screen, or the full screen (the map stays sized as
   // for half, so it does not have to be redrawn on the way back).
   function setPanel(size) { if (mPanelSize === size) return; mPanelSize = size; render(); if (size === 'peek') $('context').scrollTop = 0; }
@@ -1635,13 +1958,14 @@
   // or the analysis); back closes the topmost layer or steps up one level, and the entry comes back while there is
   // still somewhere to go back to. Without it the phone's back button (or the iPhone's edge swipe) left the site.
   let backArmed = false;
-  const deep = () => isM() && !!(mPanel || !$('sheet').hidden || $('sourcesDialog').open || !$('chartTip').hidden || state.district || state.province || state.page === 'analysis' || state.mView === 'map');
+  const deep = () => isM() && !!(mPanel || mDrawer || !$('sheet').hidden || $('sourcesDialog').open || !$('chartTip').hidden || state.district || state.province || state.page === 'analysis' || state.mView === 'map');
   function armBack() { if (!backArmed && deep()) { try { history.pushState({ e69: 'inside' }, ''); backArmed = true; } catch (e) { /* history unavailable */ } } }
   addEventListener('popstate', () => {
     if (!backArmed) return;
     backArmed = false;
     if (!isM()) return;
     if ($('sourcesDialog').open) $('sourcesDialog').close();
+    else if (mDrawer) closeDrawer(true);
     else if (!$('chartTip').hidden) hideChartTip();
     else if (!$('sheet').hidden) { if (sheetStack.length) $('sheetBack').click(); else closeSheet(); }
     else if (mPanel) closePanel(true);
@@ -1679,7 +2003,7 @@
   // The layout follows the screen: turning a phone or resizing a window across the line switches it.
   phoneQuery.addEventListener('change', () => {
     document.documentElement.classList.toggle('m', isM());
-    closePanel(); hideChartTip(); hideTip(true);
+    closePanel(); closeDrawer(); lensDone(); hideChartTip(); hideTip(true);
     if (!$('sheet').hidden) closeSheet();
     if (!isM()) { const ov = document.querySelector('#pageOverview .ov'); if (ov) delete ov.dataset.panel; }
     if (D) { renderMapCredit(state.province && provinceOf(state.province)); legendHtml = ''; render(); }
@@ -1695,6 +2019,13 @@
       t('เทียบทุกค่าของ ', 'comparing every value for ') + fmt(c.compared.constituencies) + t(' เขต ', ' constituencies, ') + fmt(c.compared.candidates) + t(' ผู้สมัคร และ ', ' candidates and ') + fmt(c.compared.parties) + t(' พรรค พบความต่าง ', ' parties: ') + '<b>' + fmt(c.differences) + '</b>' + t(' รายการ', c.differences === 1 ? ' difference' : ' differences') + '</p><p class="caveat">' +
       t('ข้อมูลต้นทางเองมียอดบัตรดี + บัตรเสีย + ไม่เลือกผู้ใด ต่างจากผู้มาใช้สิทธิ 1–3 ใบใน ', 'In the source itself, valid + invalid + no-vote ballots differ from turnout by 1–3 ballots in ') + c.ballotGaps + t(' เขต (บัตรแบ่งเขต) และ ', ' constituencies (constituency ballot) and ') + c.listBallotGaps + t(' เขต (บัญชีรายชื่อ) ระบบแสดงตามที่ กกต. ประกาศและมีหมายเหตุในรายละเอียดเขต', ' (party-list). The dashboard shows ECT\'s published values and flags them in each constituency\'s detail.') + '</p></section>';
   }
+  // Which parties govern now is not an election result: it has its own source and the date it was last checked.
+  function houseSourceHtml() {
+    const h = CFG().house || {}; if (!D.parties.some(p => p.side)) return '';
+    const text = t(h.sourceTh, h.sourceEn || h.sourceTh) || t('ข้อมูลในไฟล์ parties.csv', 'the parties.csv file');
+    return '<li>' + t('ฝ่ายรัฐบาลและฝ่ายค้านในกราฟ "รวมเสียงตั้งรัฐบาล": ', 'Government and opposition in the "Building a majority" chart: ') + (h.sourceUrl ? '<a href="' + esc(h.sourceUrl) + '" target="_blank" rel="noopener">' + esc(text) + '</a>' : esc(text)) +
+      '<small>' + (h.checkedAt ? ' · ' + t('ตรวจสอบล่าสุด ', 'last checked ') + '<span class="nw">' + esc(thaiDate(h.checkedAt)) + '</span>' : '') + ' · ' + t('ไม่ใช่ข้อมูลจาก กกต. และเปลี่ยนได้หลังจากวันที่ตรวจสอบ จำนวนเสียงนับตามผลเลือกตั้ง', 'not ECT data, and it can change after that date; seats are counted as elected') + '</small></li>';
+  }
   function sourcesHtml() {
     const checks = D.validate(), ok = checks.filter(c => c.ok).length;
     const src = (D.raw.sources || []).map(s => '<li><a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.name) + '</a><small>' + [esc(s.publisher || ''), t('ดึงข้อมูล ', 'retrieved ') + '<span class="nw">' + esc(String(s.retrievedAt || '').slice(0, 10)) + '</span>'].filter(Boolean).map(x => ' · ' + x).join('') + '</small></li>').join('');
@@ -1703,7 +2034,7 @@
       '<li>' + hexCredit('<a href="' + esc(hex.repository) + '" target="_blank" rel="noopener">Hex Map of Thailand</a>') + '<small> · ' + t('ไฟล์ ', 'archive ') + esc(hex.archive) + ' · SHA-256 ' + esc(hex.sha256.slice(0, 16)) + '… · ' + t('ไม่พบไฟล์สัญญาอนุญาตในชุดต้นทาง ใช้ผังเพื่อการศึกษาพร้อมอ้างอิงที่มา', 'no licence file in the archive; layout used for coursework with attribution') + '</small></li>' +
       '<li>' + t('ขอบเขตเขตเลือกตั้ง (แผนที่รายเขต): ', 'Constituency boundaries (province maps): ') + '<a href="' + SHAPE_SOURCE + '" target="_blank" rel="noopener">Thai-ECT-election-map</a> ' + t('โดย Kittapat Ratanaphupha', 'by Kittapat Ratanaphupha') + '<small> · ' + t('สัญญาอนุญาต MIT · ขอบเขตโดยประมาณ ไม่ใช่แผนที่ทางการของ กกต.', 'MIT License · approximate, not an official ECT map') + '</small></li>' +
       '<li>' + t('ชื่อจังหวัดภาษาอังกฤษ: ตารางชื่อจังหวัดในชุด Thailand Hex Map (data/provinces-visited.csv)', 'English province names: the province table shipped with Thailand Hex Map (data/provinces-visited.csv)') + '</li>' +
-      '<li>' + t('ความหนาแน่นประชากรรายจังหวัด ปี 2567 (2024): สำนักงานสถิติแห่งชาติ', 'Province population density, 2024: National Statistical Office of Thailand') + '</li>' +
+      houseSourceHtml() +
       '<li>' + t('ภาพบุคคลพรรค: ภาพแคนดิเดตนายกรัฐมนตรีจากระบบรายงาน กกต. (ectreport69.ect.go.th)', 'Party figures: PM-candidate portraits from the ECT reporting system (ectreport69.ect.go.th)') + '</li>' +
       (CFG().candidatePhotos ? '<li>' + t('ภาพผู้สมัครแบบแบ่งเขต: ภาพทางการจากระบบรายงาน กกต. ตัดพื้นหลังและจัดขนาดใบหน้าให้เท่ากันแบบภาพหัวหน้าพรรค ปรับแสงเพียงเล็กน้อย ไม่ได้ตกแต่งใบหน้า ผู้ที่ไม่มีภาพแสดงเป็นรูปสัญลักษณ์', 'Constituency candidates: official ECT photos, background removed and faces scaled to one size as for the party figures, with only slight light adjustment and no retouching; a plain figure marks anyone without a photo') + '</li>' : '') +
       '<li>' + t('ไอคอน: ดัดแปลงจาก Lucide (ISC License)', 'Icons adapted from Lucide (ISC License)') + '</li></ul></section>' +
@@ -1712,12 +2043,15 @@
       '<li>' + t('ส่วนต่าง = คะแนนผู้ชนะ − คะแนนอันดับสอง; ร้อยละส่วนต่าง = ส่วนต่าง ÷ บัตรดีแบบแบ่งเขต × 100', 'Margin = winner votes − runner-up votes; margin % = margin ÷ valid constituency ballots × 100') + '</li>' +
       '<li>' + t('สัดส่วนคะแนนผู้สมัคร = คะแนน ÷ บัตรดีแบบแบ่งเขต; สัดส่วนบัญชีรายชื่อ = คะแนน ÷ บัตรดีบัญชีรายชื่อ; ส่วนต่างสองบัตรแสดงเป็นจุดเปอร์เซ็นต์', 'Candidate share = votes ÷ valid constituency ballots; list share = votes ÷ valid party-list ballots; differences are in percentage points') + '</li>' +
       '<li>' + t('บัตรเสียแสดงแยกตามชนิดบัตร (แบบแบ่งเขต / บัญชีรายชื่อ) ไม่นำมารวมกัน', 'Invalid ballots are reported per ballot type (constituency / party-list), never combined') + '</li>' +
-      '<li>' + t('ที่นั่งบัญชีรายชื่อจัดสรรระดับประเทศ จึงไม่แบ่งลงจังหวัดหรือภูมิภาค', 'Party-list seats are allocated nationally and are never split by province or region') + '</li></ul></section>' +
+      '<li>' + t('ที่นั่งบัญชีรายชื่อจัดสรรระดับประเทศ จึงไม่แบ่งลงจังหวัดหรือภูมิภาค', 'Party-list seats are allocated nationally and are never split by province or region') + '</li>' +
+      '<li>' + t('เกินครึ่งสภา = ' + CFG().majority + ' ที่นั่งขึ้นไป จากทั้งหมด ' + CFG().totalSeats + ' ที่นั่ง (ส.ส.เขตรวมกับบัญชีรายชื่อ)', 'A majority of the House = ' + CFG().majority + ' or more of the ' + CFG().totalSeats + ' seats (constituency and party-list together)') + '</li>' +
+      '<li>' + t('อันดับผู้สมัครใช้คะแนนแบบแบ่งเขตของแต่ละคน; คะแนนที่ทิ้งห่าง = คะแนนผู้ชนะ − คะแนนอันดับสองของเขตเดียวกัน', 'Candidate rankings use each candidate\'s constituency votes; a lead = the winner\'s votes − the runner-up\'s in the same constituency') + '</li></ul></section>' +
       liveCheckHtml() +
       '<section><h3>' + t('การตรวจสอบภายในขณะเปิดหน้า', 'Integrity checks run on load') + ' <small>' + ok + '/' + checks.length + '</small></h3><ul class="checks">' + checks.map(c => '<li class="' + (c.note ? 'note' : c.ok ? 'ok' : 'bad') + '"><b>' + (c.note ? 'ℹ' : c.ok ? '✓' : '✗') + '</b> ' + esc(c.detail) + '</li>').join('') + '</ul></section>' +
       '<section><h3>' + t('ข้อควรระวังในการตีความ', 'Reading responsibly') + '</h3><ul>' +
       '<li>' + t('แผนที่หกเหลี่ยมให้ทุกจังหวัดมีขนาดเท่ากัน จึงบิดเบือนพื้นที่และตำแหน่งจริง', 'The hex map gives every province the same size, distorting real area and position') + '</li>' +
-      '<li>' + t('ความสัมพันธ์ในกราฟกระจายไม่ใช่ความเป็นเหตุเป็นผล และข้อมูลระดับจังหวัด/เขตไม่บอกพฤติกรรมของผู้ลงคะแนนรายบุคคล', 'Correlations are not causation, and province/district aggregates say nothing about individual voters') + '</li>' +
+      '<li>' + t('ข้อมูลระดับจังหวัดและเขตไม่บอกพฤติกรรมของผู้ลงคะแนนรายบุคคล', 'Province and constituency totals say nothing about individual voters') + '</li>' +
+      '<li>' + t('กราฟรวมเสียงตั้งรัฐบาลนับจากจำนวนที่นั่งเท่านั้น ไม่ได้บอกว่าพรรคใดจะร่วมรัฐบาลกันจริง', 'The majority builder only counts seats; it does not say which parties would in fact govern together') + '</li>' +
       '<li>' + t('เขตที่ชนะกันสูสีไม่ใช่หลักฐานของความผิดปกติ', 'Close races are not evidence of irregularities') + '</li></ul></section>';
   }
 
@@ -1747,12 +2081,14 @@
       case 'refresh-data': refreshData(); break;
       case 'theme-menu': if ($('themeList').hidden) openThemeMenu(); else closeThemeMenu(); break;
       case 'theme': setTheme(v); closeThemeMenu(true); break;
-      case 'sources': $('sourcesTitle').innerHTML = t('ที่มาข้อมูล นิยาม และ<span class="nw">การตรวจสอบ</span>', 'Sources, definitions and checks'); $('sourcesBody').innerHTML = sourcesHtml(); $('sourcesDialog').showModal(); closeNav(); if (isM()) armBack(); break;
+      case 'sources': $('sourcesTitle').innerHTML = t('ที่มาข้อมูล นิยาม และ<span class="nw">การตรวจสอบ</span>', 'Sources, definitions and checks'); $('sourcesBody').innerHTML = sourcesHtml(); closeDrawer(); $('sourcesDialog').showModal(); closeNav(); if (isM()) armBack(); break;
       case 'sheet-close': closeSheet(); break;
       case 'goto-map': { const r = D.byId.get(v); closeSheet(); state.page = 'overview'; history.replaceState(null, '', '#overview'); if (isM()) { state.mView = 'map'; mPanelSize = 'half'; } setState({ province: r.provinceCode, district: v }); break; }
       // phones
       case 'm-tab': mTab(v); break;
       case 'm-panel-close': closePanel(true); break;
+      case 'm-drawer': if (mDrawer) closeDrawer(true); else openDrawer(); break;
+      case 'm-drawer-close': closeDrawer(true); break;
       case 'm-example': $('search').value = v; $('search').focus(); suggest(); break;
       case 'm-mapmode': openSheet({ kind: 'mapmode' }); break;
       case 'm-setmode': closeSheet(); setState({ mapMode: v }); break;
@@ -1775,9 +2111,12 @@
     if (!$('themeList').hidden) { closeThemeMenu(true); return; }
     if (tipCode) { hideTip(true); dismissTip(); return; }
     if (!$('sheet').hidden) { closeSheet(); return; }
+    if (mDrawer) { closeDrawer(true); return; }
     if (mPanel) { closePanel(true); return; }
     if (isM() && !$('chartTip').hidden) { inspectKey = ''; hideChartTip(); return; }
     if (document.body.classList.contains('nav-open')) { closeNav(); return; }
+    // Analysis, desktop: Escape steps back from a chart opened large to the four-chart overview.
+    if (state.page === 'analysis' && !isM() && state.analysisTab === 'core' && state.coreFocus && !ev.target.closest('input,select,dialog')) { E69.analysis?.onAction?.('an-unfocus'); return; }
     if (state.page === 'overview' && (state.district || state.province) && !ev.target.closest('input,select,dialog')) setState(state.district ? { district: '', candidate: '' } : { province: '' });
   });
   $('provinceTip').addEventListener('pointerenter', () => { clearTimeout(hideTimer); clearTimeout(switchTimer); });
@@ -1787,7 +2126,7 @@
   $('sourcesClose').addEventListener('click', () => $('sourcesDialog').close());
   $('sourcesDialog').addEventListener('click', ev => { if (ev.target === $('sourcesDialog')) $('sourcesDialog').close(); });
   addEventListener('hashchange', () => { const p = location.hash.slice(1); if ((p === 'overview' || p === 'analysis') && p !== state.page) setPage(p); });
-  addEventListener('resize', () => { hideTip(true); positionPill(); if (!$('sheet').hidden) $('sheet').classList.toggle('as-drawer', !narrow() && state.page === 'analysis'); if (!narrow()) closeNav(); });
+  addEventListener('resize', () => { hideTip(true); lensCancel(); positionPill(); if (!$('sheet').hidden) $('sheet').classList.toggle('as-drawer', !narrow() && state.page === 'analysis'); if (!narrow()) closeNav(); });
   $('main').addEventListener('scroll', () => { if (tipCode) hideTip(true); hidePill(); }, { passive: true });
 
   /* ---------- colour theme control ---------- */
@@ -1860,8 +2199,8 @@
     });
   }, { passive: true });
 
-  Object.assign(E69, { $, esc, fmt, fmtP, fmtPP, t, lang: () => lang, pname, ptitle, rname, dname, dot, chartTip, hideChartTip, provinceDetail, districtDetail, openSheet, closeSheet, narrow, coarse, isM, render, scopeRows, isRegionIn,
-    ramps, colors, isDark, inkOn: fill => luminance(d3.color(fill).formatHex()) > 0.33 ? '#102631' : '#fff',
+  Object.assign(E69, { $, esc, fmt, fmtP, fmtPP, t, lang: () => lang, pname, ptitle, rname, dname, dot, face, nm, thaiDate, chartTip, hideChartTip, provinceDetail, districtDetail, openSheet, closeSheet, narrow, coarse, isM, render, scopeRows, isRegionIn, findDistricts,
+    ramps, colors, isDark, typeUp, inkOn: fill => luminance(d3.color(fill).formatHex()) > 0.33 ? '#102631' : '#fff',
     data: () => D, config: () => DS.config, dataMode: () => DS.mode, loadedAt: () => DS.loadedAt, refresh: () => refreshData() });
 
   /* ---------- data loading and refresh ---------- */
@@ -1882,7 +2221,7 @@
   function showNote(message, failed) {
     const note = $('refreshNote'), toast = $('mToast'); clearTimeout(noteTimer);
     note.textContent = message; note.classList.toggle('is-failed', !!failed); note.hidden = false;
-    // Phones show the same note as a toast above the tab bar (the refresh button is in the filters panel there).
+    // Phones show the same note as a toast above the tab bar (the refresh button is in the menu drawer there).
     if (isM()) { toast.textContent = message; toast.classList.toggle('is-failed', !!failed); toast.hidden = false; }
     // A success note clears quickly; a failure stays longer because it names the file, row and column to fix.
     noteTimer = setTimeout(() => { note.hidden = true; toast.hidden = true; }, failed ? 9000 : 2000);

@@ -110,8 +110,11 @@
       // Candidate portraits: a path with {id} = ECT candidate id (e.g. BKK_1_5); ids listed as missing are never requested.
       candidatePhotos: /\{id\}/.test(s.candidate_photos || '') ? s.candidate_photos : '',
       candidatePhotosMissing: (s.candidate_photos_missing || '').split('|').map(v => v.trim()).filter(Boolean),
+      // Who governs now (parties.csv house_side): when that was last checked, where it comes from, and a note.
+      house: { checkedAt: s.house_checked_at || '', sourceTh: s.house_source_th || '', sourceEn: s.house_source_en || '', sourceUrl: s.house_source_url || '', noteTh: s.house_note_th || '', noteEn: s.house_note_en || '' },
       elections: (all || [entry]).map(e => ({ id: e.id, nameTh: e.nameTh, nameEn: e.nameEn, active: e.active })),
     };
+    if (config.house.checkedAt && !Number.isFinite(Date.parse(config.house.checkedAt))) fail(sAt('house_checked_at'), 'อ่านวันที่ไม่ได้ ใช้รูปแบบ ปี ค.ศ.-เดือน-วัน เช่น 2026-11-12');
 
     // provinces.csv
     const pFile = path('provinces.csv'), provinces = new Map(), spots = new Set();
@@ -134,7 +137,9 @@
       if (!name) fail(w('name'), 'ต้องใส่ชื่อพรรค');
       if (partyNames.has(name)) fail(w('name'), 'ชื่อพรรคซ้ำ "' + name + '"'); partyNames.add(name);
       if (!/^#[0-9a-f]{6}$/i.test(text(r.color))) fail(w('color'), 'สีต้องเป็นรหัสแบบ #RRGGBB เช่น #0F1E64');
-      parties.push({ name, number: int(r.number, w('number')), color: text(r.color), partyLeader: text(r.party_leader), pm: list(r.pm_candidates),
+      // Side of the House now: รัฐบาล (government), ฝ่ายค้าน (opposition), anything else (e.g. อิสระ) = on neither side.
+      const sideText = text(r.house_side), side = !sideText ? '' : /^(รัฐบาล|ฝ่ายรัฐบาล|government|gov)$/i.test(sideText) ? 'gov' : /^(ฝ่ายค้าน|opposition|opp)$/i.test(sideText) ? 'opp' : 'other';
+      parties.push({ name, side, number: int(r.number, w('number')), color: text(r.color), partyLeader: text(r.party_leader), pm: list(r.pm_candidates),
         showCard: yes(r.show_card), cardPerson: text(r.card_person), cardIsPm: yes(r.card_is_pm_candidate), photo: text(r.photo), photoFallback: text(r.photo_fallback),
         constituencySeats: int(r.constituency_seats, w('constituency_seats')), listSeats: int(r.list_seats, w('list_seats')),
         officialListVotes: int(r.official_list_votes, w('official_list_votes')), officialConstituencyVotes: int(r.official_constituency_votes, w('official_constituency_votes')), ectId: text(r.ect_id) });
@@ -191,7 +196,7 @@
       const cons = p.constituencySeats ?? wins.get(p.name) ?? 0, listS = p.listSeats ?? 0;
       return { id: p.ectId || p.name, name: p.name, number: p.number, color: p.color, leader: p.partyLeader || p.pm[0] || stripTitle(p.cardPerson),
         partyLeader: p.partyLeader || null, pmCandidates: p.pm.map(n => ({ name: n })), listSeats: listS, constituencySeats: cons, totalSeats: cons + listS,
-        officialListVotes: p.officialListVotes, officialConstituencyVotes: p.officialConstituencyVotes, principal: p.showCard };
+        officialListVotes: p.officialListVotes, officialConstituencyVotes: p.officialConstituencyVotes, principal: p.showCard, side: p.side };
     });
     const portraits = {};
     for (const p of parties) if (p.photo || p.photoFallback) portraits[p.name] = { name: p.cardPerson || p.pm[0] || '', src: p.photo || p.photoFallback, fallback: p.photoFallback, verifiedPMCandidate: p.cardIsPm };
