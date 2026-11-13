@@ -353,7 +353,7 @@
       '<section class="kpis" id="kpis"></section>' +
       '<section class="card parties-card" aria-labelledby="partiesTitle"><div class="card-head"><h2 id="partiesTitle"></h2><div id="partyOthers"></div></div><div class="party-cards" id="partyCards"></div></section>' +
       '<section class="card map-card" aria-labelledby="mapTitle"><div class="card-head map-head"><div id="mapHeading"></div><div class="map-controls" id="mapControls"></div></div>' +
-      '<div class="map-stage" id="mapStage"><svg id="hexmap" role="group"></svg><svg id="distmap" role="group" hidden></svg><p class="map-loading" id="mapLoading" hidden></p><div class="map-tools" id="mapTools"></div><div class="map-legend" id="mapLegend"></div><p class="lens-hint m-only" id="lensHint" aria-hidden="true"></p></div>' +
+      '<div class="map-stage" id="mapStage"><svg id="hexmap" role="group"></svg><svg id="distmap" role="group" hidden></svg><p class="map-loading" id="mapLoading" hidden></p><div class="map-tools" id="mapTools"></div><div class="map-legend" id="mapLegend"></div><button type="button" class="lens-btn m-only" id="lensBtn" data-act="lens-toggle" aria-pressed="false"></button></div>' +
       '<p class="map-credit" id="mapCredit"></p>' +
       '</section>' +
       '<section class="card context-card" id="context" aria-live="polite"></section>' +
@@ -524,17 +524,57 @@
   }
 
   /* ---------- phones: focus + context on the national map ---------- */
-  /* On a phone a province is narrower than a fingertip, so it is hard to aim at. Touch the map and slide (or keep the
-     finger down for a moment) and a fisheye lens opens under the finger: the province there and the ones around it
-     grow (the focus) while the rest of the country stays on screen, pressed together a little (the context). A label
-     above the province names it. The lens stays centred on a province until the finger has crossed its enlarged
-     outline, so the target under the finger is always large and a small slip does not change it. Lifting the finger
-     opens that province; lifting it over the sea opens nothing. A quick tap works as it always did.
+  /* On a phone a province is narrower than a fingertip, so it is hard to aim at. The lens is off until the visitor
+     turns it on with the button in the sea beside the south ("แตะค้างแล้วเลื่อนนิ้ว"); until then the map works as any
+     map does (a tap opens a province, two fingers zoom, holding a finger does nothing). With the lens on, touch the map
+     and slide (or keep the finger down for a moment) and a fisheye lens opens under the finger: the province there and
+     the ones around it grow (the focus) while the rest of the country stays on screen, pressed together a little (the
+     context). A label above the province names it. The lens stays centred on a province until the finger has crossed
+     its enlarged outline, so the target under the finger is always large and a small slip does not change it. Lifting
+     the finger opens that province; lifting it over the sea opens nothing. A quick tap still opens the province.
      Only in the phone layout, on the national map at its normal size: two fingers still pinch-zoom, and a zoomed map
-     is still dragged with one finger. */
+     is still dragged with one finger. The button stays on until it is pressed again (it is not remembered between
+     visits, so every visit starts with the plain map). */
   const LENS = { reach: 8 * R * SQ3, hold: 170, slop: 7, target: 78, min: 2, max: 3 };
-  let lens = null;
-  const lensReady = () => isM() && state.page === 'overview' && state.mView === 'map' && !state.province && camera.k <= 1.01 && !$('mapStage').classList.contains('is-animating');
+  let lens = null, lensMode = false;
+  const lensReady = () => isM() && lensMode && state.page === 'overview' && state.mView === 'map' && !state.province && camera.k <= 1.01 && !$('mapStage').classList.contains('is-animating');
+  // The button: its bold line says what to do once the lens is on, the line under it and the switch say whether it is.
+  // Both second lines are always there, one of them invisible, so the button keeps its size when it is switched.
+  function paintLensBtn() {
+    const b = $('lensBtn'); if (!b) return;
+    b.setAttribute('aria-pressed', String(lensMode));
+    b.title = lensMode ? t('ปิดแว่นขยาย', 'Turn the lens off') : t('เปิดแว่นขยาย แล้วแตะค้างบนแผนที่และเลื่อนนิ้วเพื่อเล็งจังหวัด', 'Turn the lens on, then hold a finger on the map and slide to aim at a province');
+    // (On a narrow phone the bold line wraps; "เลื่อนนิ้ว" is kept whole so it breaks after "แตะค้างแล้ว".)
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg><span class="lb"><b>' + t('แตะค้างแล้ว<span class="nw">เลื่อนนิ้ว</span>', 'Touch and slide') + '</b>' +
+      '<span class="st"><span class="st-off">' + t('กดเพื่อเปิดแว่นขยาย', 'Tap to use the lens') + '</span><span class="st-on">' + t('แว่นขยายเปิดอยู่', 'The lens is on') + '</span></span></span><span class="sw" aria-hidden="true"></span>';
+  }
+  function setLensMode(on) {
+    lensMode = on;
+    if (!on && lens) lensDone();
+    $('mapStage')?.classList.toggle('lens-mode', on);
+    paintLensBtn();
+  }
+  // Where the open sea beside the south is depends on the shape the map takes on this screen, so the button is placed
+  // by measuring: from its usual height (64 % down the map) it moves up or down to the nearest place where it covers
+  // no province and stays clear of the map's other buttons. If there is none, it drops its second line and looks again.
+  function placeLensBtn() {
+    const b = $('lensBtn'), stage = $('mapStage');
+    if (!b || !stage || !isM() || !b.offsetParent || stage.classList.contains('is-animating')) return;
+    const s = stage.getBoundingClientRect(), gap = 6, box = el => { const r = el && el.getBoundingClientRect(); return r && r.width ? r : null; };
+    const tools = box(stage.querySelector('.map-tools')), key = box(stage.querySelector('.lg-toggle'));
+    // Each province as the part of its tile that matters (a hexagon's bounding box less its empty corners, roughly).
+    const hexes = [...document.querySelectorAll('#hexmap g.hex polygon')].map(p => { const r = p.getBoundingClientRect(); return { x0: r.left + r.width * 0.1, x1: r.right - r.width * 0.1, y0: r.top + r.height * 0.1, y1: r.bottom - r.height * 0.1 }; });
+    const lo = (tools ? tools.bottom - s.top : 0) + gap, def = s.height * 0.64;
+    for (const compact of [false, true]) {
+      b.classList.toggle('is-compact', compact);
+      const h = b.offsetHeight, x1 = s.right - 8, x0 = x1 - b.offsetWidth, hi = (key ? key.top - s.top : s.height) - gap - h;
+      const clear = top => !hexes.some(r => r.x1 > x0 && r.x0 < x1 && r.y1 > s.top + top && r.y0 < s.top + top + h);
+      for (let d = 0; d <= s.height; d += 4) for (const top of d ? [def - d, def + d] : [def]) {
+        if (top >= lo && top <= hi && clear(top)) { b.style.top = Math.round(top) + 'px'; return; }
+      }
+    }
+    b.classList.remove('is-compact'); b.style.top = '';   // nowhere clear: leave it at its usual place
+  }
   const corners = d => d.corners || (d.corners = Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 * (1 + 2 * i); return [d.cx + R * Math.cos(a), d.cy + R * Math.sin(a)]; }));
   // The fisheye. A map point moves away from the centre of the lens by a factor that falls from `m` at the centre to 1
   // at LENS.reach, where the map is left as it is; (ox, oy) leans the middle of the lens away from the screen's edge.
@@ -864,8 +904,8 @@
       '<button type="button" class="m-mode m-only" data-act="m-mapmode" aria-haspopup="dialog" aria-label="' + esc(t('สีบนแผนที่: ', 'Map colour: ') + MAP_MODES().find(x => x[0] === state.mapMode)[2]) + '"><span class="sw" style="background:' + modeSwatch(state.mapMode) + '"></span><span class="lb">' + MAP_MODES().find(x => x[0] === state.mapMode)[1] + '</span></button>';
     $('mapTools').innerHTML = '<button type="button" class="map-reset" data-act="map-reset" title="' + t('กลับไปแผนที่ประเทศไทยตอนเปิดหน้าเว็บ', 'Back to the full map of Thailand') + '">' + RESET_ICON + t('รีเซ็ต', 'Reset') + '</button>' +
       '<button type="button" class="icon-btn" data-act="zoom" data-v="in" title="' + t('ขยาย', 'Zoom in') + '" aria-label="' + t('ขยายแผนที่', 'Zoom in') + '">+</button><button type="button" class="icon-btn" data-act="zoom" data-v="out" title="' + t('ย่อ', 'Zoom out') + '" aria-label="' + t('ย่อแผนที่', 'Zoom out') + '">−</button>';
-    // Phones: what the lens is for, in the open sea beside the south (the gesture cannot be seen otherwise).
-    $('lensHint').innerHTML = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg><span><b>' + t('แตะค้างแล้วเลื่อนนิ้ว', 'Touch and slide') + '</b>' + t('แว่นขยายช่วยเล็งจังหวัด', 'a lens helps you aim') + '</span>';
+    // Phones: the button that turns the lens on and off, in the open sea beside the south.
+    paintLensBtn(); requestAnimationFrame(placeLensBtn);
   }
   // The five colourings as the phone sheet lists them: [value, short name for the pill, full name, what it shows, group].
   const MAP_MODES = () => {
@@ -897,7 +937,7 @@
   // How-to line at the foot of the legend; the map's credits sit under the map, outside its frame.
   const mapNote = () => state.province
     ? '<p class="lg-cap lg-note">' + (coarse() ? t('แตะเขตเพื่อดูคะแนนผู้สมัคร', 'Tap a constituency for candidate results.') : t('ชี้เขตเพื่อดูชื่อพื้นที่และผล คลิกเพื่อดูคะแนนผู้สมัครทุกคน', 'Hover a constituency for its area and result, click for every candidate.')) + '</p>'
-    : '<p class="lg-cap lg-note">' + (coarse() ? t('แตะจังหวัดเพื่อดูแผนที่รายเขต', 'Tap a province to open its constituencies.') + (isM() ? t(' หรือแตะค้างแล้วเลื่อนนิ้ว: แว่นขยายจะขยายจังหวัดใต้นิ้วและรอบ ๆ ให้เล็งง่าย แล้วปล่อยนิ้วเพื่อเปิด', ' Or touch and slide: a lens enlarges the provinces under and around your finger; lift it to open one.') : '') : t('ชี้จังหวัดเพื่อดูสรุป คลิกเพื่อซูมเข้าไปดูรายเขต', 'Hover a province for a summary, click to zoom into its constituencies.')) + '</p>';
+    : '<p class="lg-cap lg-note">' + (coarse() ? t('แตะจังหวัดเพื่อดูแผนที่รายเขต', 'Tap a province to open its constituencies.') + (isM() ? t(' จังหวัดเล็กเล็งยาก? กดปุ่ม “แตะค้างแล้วเลื่อนนิ้ว” ในทะเลเพื่อเปิดแว่นขยาย แล้วแตะค้างบนแผนที่และเลื่อนนิ้ว จังหวัดใต้นิ้วและรอบ ๆ จะขยายให้เล็งง่าย ปล่อยนิ้วเพื่อเปิด กดปุ่มอีกครั้งเพื่อปิด', ' Province too small to aim at? Turn the lens on with the “Touch and slide” button in the sea, then hold a finger on the map and slide: the provinces under and around it grow; lift it to open one. Press the button again to turn the lens off.') : '') : t('ชี้จังหวัดเพื่อดูสรุป คลิกเพื่อซูมเข้าไปดูรายเขต', 'Hover a province for a summary, click to zoom into its constituencies.')) + '</p>';
   const HEX_SOURCE = 'https://github.com/puripant/thailand-hex-map', SHAPE_SOURCE = 'https://github.com/KittapatR/Thai-ECT-election-map';
   // One wording for the hex-map credit, used under the map and in the sources dialog; `linkHtml` is the linked title.
   // Non-breaking spaces keep the academic title with the name, so a line never ends between "ผศ." and "ดร.".
@@ -1405,7 +1445,7 @@
   }
   function layoutLabels() {
     const el = $('hexmap'); if (!el || !el.clientWidth) return;
-    positionLegend();
+    positionLegend(); placeLensBtn();
     const svgScale = Math.min(el.clientWidth / vb.w, el.clientHeight / vb.h), scale = svgScale * camera.k;
     const up = typeUp(), hexW = R * SQ3 * scale, hexH = 2 * R * scale, base = Math.max(10 + up, Math.min(14 + up, hexW * 0.27));   // a name is never larger than this, nor than fits its tile
     const roomW = [0, 0.88, 0.86, 0.78], roomH = [0, 0.5, 0.66, 0.8];
@@ -2076,6 +2116,7 @@
       }
       case 'map-reset': resetMap(); break;
       case 'legend-toggle': legendOpen = !legendOpen; $('mapLegend').classList.toggle('open', legendOpen); a.setAttribute('aria-expanded', String(legendOpen)); break;
+      case 'lens-toggle': setLensMode(!lensMode); break;
       case 'lang': if (v !== lang) { lang = v; try { localStorage.setItem('e69-language', lang); } catch (e) { /* ignore */ } d3.selectAll('#hexmap g.hex').each(d => { d.opts = null; }); hideTip(true); render(); if (!$('sourcesDialog').hidden && $('sourcesDialog').open) $('sourcesBody').innerHTML = sourcesHtml(); } break;
       case 'clear-all': clearAll(); break;
       case 'refresh-data': refreshData(); break;
